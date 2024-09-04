@@ -1,0 +1,145 @@
+{
+    "config":{
+        "prefix":"/api",
+        "healthCheck": "/health",
+        "latency": 700,
+        "Port": 3000,
+        "failRate": 0.2,
+        "timeout": 1000,
+        "apiKey":  "1234567890ssss"
+    },
+    "api":[
+      {
+        "path":"/user/data",
+        "latency":200,
+        "method":"GET",
+        "failRate" : 0.1,
+        "validate":{
+          "query":{
+            "id":"String()",
+            "body": {
+              "uuid": "UUID()"
+            }
+          }
+        },
+        "response":{
+          "color":{ 
+            "color":"Color()",
+            "hex":"Color(hex)",
+            "rgb":"Color(rgb)",
+            "rgba":"Color(rgba)",
+            "safe" :"Color(safe)",
+            "css":"Color(css)"
+
+          },
+          "address" :{
+            "address":"Address()",
+            "city":"Address(city)",
+            "state":"Address(state)",
+            "country":"Address(country)",
+            "zip":"Address(zip)",
+            "latitude":"Address(latitude)",
+            "longitude":"Address(longitude)",
+            "secondary":"Address(full)",
+            "street":"Address(street)",
+            "country_code":"Address(countryCode)",
+            "state_code":"Address(stateAbbr)",
+            "countryAbbr":"Address(countryAbbr)"
+          },
+          "company":{
+            "company":"Company()",
+            "catch_phrase":"Company(catchPhrase)",
+            "bs":"Company(bs)",
+            "jobTitle":"Company(jobTitle)",
+            "ein":"Company(ein)",
+            "suffix":"Company(suffix)",
+            "mail":"Company(mail)"
+          },
+          "internet":{
+            "url":"Internet()",
+            "domain":"Internet(domain)",
+            "ip":"Internet(ip)",
+            "ipv6":"Internet(ipv6)",
+            "mac":"Internet(mac)",
+            "httpMethod":"Internet(httpMethod)",
+            "tld":"Internet(tld)",
+            "slug":"Internet(slug)",
+            "status_code":"Internet(statusCode)",
+            "free_email":"Internet(freeEmail)",
+            "safe_email":"Internet(safeEmail)",
+            "status_code_message":"Internet(statusCodeMessage)"
+          },
+          "user":{
+            "user":"User()",
+            "email":"User(email)",
+            "firstName":"User(firstName)",
+            "lastName":"User(lastName)",
+            "femaleFirstName":"User(fFirstName)",
+            "female Title" :"User(fTitle)",
+            "maleFirstName":"User(mFirstName)",
+            "maleTitle":"User(mTitle)",
+            "phone":"User(phone)",
+            "userName":"User(userName)",
+            "password":"User(password)",
+            "image":"User(image)",
+            "title":"User(title)",
+            "gender":"User(gender)",
+            "ssn":"User(ssn)",
+            "bio":"User(bio)",
+            "birthday":"User(birthday)",
+            "age":"Age()",
+            "gamer_tag":"User(gamerTag)",
+            "uuid":"User(uuid)",
+            "sqlId":"User(sqlId)"
+          },
+          "finance":{
+            "credit_card":"Finance(creditCard)",
+            "card_type":"Finance(cardType)",
+            "mask":"Finance(cardExpirationDate)",
+            "amount":"Finance(amount)",
+            "iban":"Finance(iban)",
+            "currency":"Finance(currency)",
+            "currencyCode":"Finance(currencyCode)",
+            "currencyAndCode":"Finance(currencyAndCode)",
+            "amountWithCurrency":"Finance(amountWithCurrency)",
+            "transactionDescription":"Finance(transactionDescription)",
+            "btcAddress":"Finance(btcAddress)",
+            "ethAddress":"Finance(ethAddress)"
+          },
+          "Lorem":{
+            "word":"Lorem(word)",
+            "words":"Lorem(words)",
+            "sentence":"Lorem(sentence)",
+            "paragraph":"Lorem(paragraph)",
+             "Lorem":"Lorem()"
+          },
+          "misc":{
+            "boolean":"Bool()",
+            "float":"Float()",
+            "integer":"Int()",
+            "intSmall":"Int(20)",
+            "json":"Json()",
+            "array":"Array()"
+          },
+          "language":{
+            "language":"Language()",
+            "languageabbr":"Language(abbr)",
+            "languageName":"Language(programming)"
+          }
+
+        }
+        
+          
+
+        
+      },{
+        "path":"/test",
+        "method":"GET",
+        "response":{
+          "name":"String(20)",
+          "address":"String(80)",
+          "display_picture":"*Image()"
+        }
+      }
+    ]
+  }
