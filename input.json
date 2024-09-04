@@ -125,6 +125,11 @@
             "language":"Language()",
             "languageabbr":"Language(abbr)",
             "languageName":"Language(programming)"
+          },
+          "app":{
+            "appName":"App()",
+            "appVersion":"App(version)",
+            "appHomepage":"App(platform)"
           }
 
         }

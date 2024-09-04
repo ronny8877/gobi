@@ -409,8 +409,40 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			default:
 				return fake.Language().Language()
 			}
-
 		},
+		"App": func(args *string) interface{} {
+			switch {
+			case args == nil:
+				return fake.App().Name()
+			case *args == "version":
+				return fake.App().Version()
+			case *args == "platform":
+				// return a random platform from iOS, Android, web, Mac, Windows, Linux
+				platforms := []string{"iOS", "Android", "web", "Mac", "Windows", "Linux"}
+				return platforms[rand.Intn(len(platforms))]
+			default:
+				return fake.App().Name()
+			}
+		},
+		//TODO : Implement the Date function
+		// "time": func(args *string) interface{} {
+		// 	switch {
+		// 	case args == nil:
+		// 		return fake.Time().DayOfWeek()
+		// 	case *args == "long":
+		// 		return fake.Date().Long()
+		// 	case *args == "short":
+		// 		return fake.Date().Short()
+		// 	case *args == "birthday":
+		// 		return fake.Date().Birthday()
+		// 	case *args == "unix":
+		// 		return fake.Date().Unix()
+		// 	case *args == "unixNano":
+		// 		return fake.Date().UnixNano()
+		// 	default:
+		// 		return fake.Date().Short()
+		// 	}
+		// },
 		"Json": func(args *string) interface{} {
 			return fake.Map()
 		},
