@@ -28,7 +28,7 @@ type API struct {
 }
 
 type Validate struct {
-	Query  map[string]interface{} `json:"query"`
+	Query  []string               `json:"query"`
 	Body   map[string]interface{} `json:"body"`
 	Params map[string]interface{} `json:"params"`
 }
@@ -108,6 +108,14 @@ func loadConfig(app *AppInput) {
 		app.Config.Prefix = defaultConfig.Prefix
 	}
 
+	if app.Config.HealthCheck == nil {
+		app.Config.HealthCheck = defaultConfig.HealthCheck
+	}
+
+	if app.Config.Latency == nil {
+		app.Config.Latency = defaultConfig.Latency
+	}
+
 	fmt.Println("Configuration Loaded: ")
 }
 
@@ -148,7 +156,7 @@ func watchConfigFile(filename string, app *AppInput) {
 }
 
 // TODO Implement the timeout function
-// TODO Implement auth using API key cookie or bearer token
+// TODO Implement auth	 using API key cookie or bearer token
 func main() {
 	var app AppInput
 	loadConfig(&app)
@@ -163,6 +171,10 @@ func main() {
 	<-sigChan
 	fmt.Println("Shutting down...")
 }
+
+// func validateQueryParams(query map[string]interface{}) bool {
+// 	return true
+// }
 
 func startServer(app *AppInput) {
 	http.HandleFunc(fmt.Sprintf("%s/", app.Config.Prefix), func(w http.ResponseWriter, r *http.Request) {
@@ -208,13 +220,23 @@ func startServer(app *AppInput) {
 						http.Error(w, `{"error":"Internal server Error"}`, http.StatusInternalServerError)
 						return
 					}
-
 				}
+
 				//check if the validate is provided
 				if api.Validate != nil {
 					//check if the query parameters are provided
 					if api.Validate.Query != nil {
-						//check if the query parameters are correct
+						fmt.Println("Query Params: ", api.Validate.Query)
+						fmt.Println("Query Params: ", r.URL.Query())
+						_, err := validateQueryParam(api.Validate.Query, r.URL.Query())
+						if err != nil {
+							http.Error(w, `{"error": "Invalid Query Params"}`, http.StatusBadRequest)
+							return
+						}
+						if app.Config.Logging != nil && *app.Config.Logging {
+							fmt.Println("Valid Query Params")
+						}
+
 					}
 					//check if the body is provided
 					if api.Validate.Body != nil {
@@ -222,7 +244,7 @@ func startServer(app *AppInput) {
 					}
 					//check if the params are provided
 					if api.Validate.Params != nil {
-						//check if the params are correct
+						//check if the params are correct.
 					}
 				}
 				//return the response
@@ -230,17 +252,16 @@ func startServer(app *AppInput) {
 				w.Header().Set("X-Powered-By", "Gobi")
 				// fmt.Println("Response Type: ", string(*api.ResponseType))
 				if api.ResponseType != nil {
-					fmt.Println("api.ResponseType: ", api)
-					fmt.Println("Response Type: ", string(*api.ResponseType))
-					var arrLen = strings.Split(strings.TrimRight(strings.Split(*api.ResponseType, "(")[1], ")"), ",")
+					respType, arg := parseValueBwBrackets(*api.ResponseType)
 					response := []interface{}{}
-					fmt.Println("Args: ", arrLen[0])
-					arrLenInt, _ := strconv.Atoi(arrLen[0])
-					for i := 0; i < arrLenInt; i++ {
-						response = append(response, ResponseBuilder(api.Response))
+					if respType == "Array" {
+						arrLenInt, _ := strconv.Atoi(arg)
+						for i := 0; i < arrLenInt; i++ {
+							response = append(response, ResponseBuilder(api.Response))
+						}
+						json.NewEncoder(w).Encode(response)
+						break
 					}
-					json.NewEncoder(w).Encode(response)
-					break
 				} else {
 					response := ResponseBuilder(api.Response)
 					json.NewEncoder(w).Encode(response)
@@ -256,6 +277,26 @@ func startServer(app *AppInput) {
 		}
 
 	})
+}
+
+func parseValueBwBrackets(value string) (string, string) {
+	var name = strings.Split(value, "(")[0]
+	var args = strings.Split(value, "(")[1]
+	args = strings.TrimRight(args, ")")
+	return name, args
+}
+
+func validateQueryParam(query []string, rQuery map[string][]string) (bool, error) {
+	//  if both dose not have the same length then return false
+	if len(query) != len(rQuery) {
+		return false, fmt.Errorf("mismatch in query params")
+	}
+	for _, q := range query {
+		if _, ok := rQuery[q]; !ok {
+			return false, fmt.Errorf("mismatch in query params")
+		}
+	}
+	return true, nil
 }
 func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 	response := make(map[string]interface{})
@@ -573,6 +614,12 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			return fmt.Sprintf("https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=%s", *args)
 			//TODO : Implement so Images form other sources can be passed
 		},
+		"Success": func(args *string) interface{} {
+			if args == nil {
+				return "Success"
+			}
+			return *args
+		},
 		"Json": func(args *string) interface{} {
 			return fake.Map()
 		},
@@ -589,9 +636,7 @@ func processMap(data map[string]interface{}, funcMap map[string]func(*string) in
 		switch v := value.(type) {
 		case string:
 			//Getting the value In bw the brackets also removing the brackets
-			var funcName = strings.Split(v, "(")[0]
-			var args = strings.Split(v, "(")[1]
-			args = strings.TrimRight(args, ")")
+			funcName, args := parseValueBwBrackets(v)
 			if fn, ok := funcMap[funcName]; ok {
 				result[key] = fn(&args)
 			} else {

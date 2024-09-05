@@ -15,13 +15,11 @@
         "latency":200,
         "method":"GET",
         "failRate" : 0,
-        "responseType":"Array(2)",
+
         "validate":{
-          "query":{
-            "id":"String()",
+          "query":["id","name","age","email"],
             "body": {
               "uuid": "UUID()"
-            }
           }
         },
         "response":{
@@ -76,8 +74,8 @@
             "email":"User(email)",
             "firstName":"User(firstName)",
             "lastName":"User(lastName)",
-            "femaleFirstName":"User(fFirstName)",
-            "female Title" :"User(fTitle)",
+            "female_firstName":"User(fFirstName)",
+            "female_title" :"User(fTitle)",
             "maleFirstName":"User(mFirstName)",
             "maleTitle":"User(mTitle)",
             "phone":"User(phone)",
@@ -96,7 +94,7 @@
           "finance":{
             "credit_card":"Finance(creditCard)",
             "card_type":"Finance(cardType)",
-            "mask":"Finance(cardExpirationDate)",
+            "exp":"Finance(cardExpirationDate)",
             "amount":"Finance(amount)",
             "iban":"Finance(iban)",
             "currency":"Finance(currency)",
@@ -125,7 +123,7 @@
           "language":{
             "language":"Language()",
             "languageabbr":"Language(abbr)",
-            "languageName":"Language(programming)"
+            "programming":"Language(programming)"
           },
           "app":{
             "appName":"App()",
@@ -161,11 +159,26 @@
       },{
         "path":"/test",
         "method":"GET",
-        "responseType":"Array(2)",
+        
+        "validate":{
+          "query":["id","name","age","email"],
+            "body": {
+              "uuid": "UUID()"
+           
+          }
+        },
         "response":{
-          "name":"User()",
-          "address":"Address()",
-          "display_picture":"Image()"
+          "nested":{
+            "name":"User()",
+            "address":"Address()",
+            "display_picture":"Image(seed)",
+            "message":"Success(any message you want)",
+            "payment_info":{
+                "credit_card":"Finance(creditCard)",
+                "card_type":"Finance(cardType)",
+                "mask":"Finance(cardExpirationDate)"
+            }
+        }
         }
       }
     ]
