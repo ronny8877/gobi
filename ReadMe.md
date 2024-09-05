@@ -502,7 +502,7 @@ Response
 - [ ] Better Documentation
 - [ ] Code Cleanup
 - [ ] Adding test
-
+- [ ] Improve Project Structure
 ### Contributing
 Feel free to do anything It's my first project to shitty code is expected.  : )
 If ya find any bugs or have any suggestions feel free to open an issue or a PR. and please explain the issue or the PR in detail. It'll help me understand better.
