@@ -5,7 +5,7 @@
         "latency": 200,
         "Port": 3000,
         "logging": true,
-        "failRate": 0.2,
+        "failRate": 0,
         "timeout": 1000,
         "apiKey":  "1234567890ssss"
     },
@@ -15,6 +15,7 @@
         "latency":200,
         "method":"GET",
         "failRate" : 0,
+        "responseType":"Array(2)",
         "validate":{
           "query":{
             "id":"String()",
@@ -160,6 +161,7 @@
       },{
         "path":"/test",
         "method":"GET",
+        "responseType":"Array(2)",
         "response":{
           "name":"User()",
           "address":"Address()",

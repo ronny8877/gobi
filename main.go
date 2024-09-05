@@ -18,12 +18,13 @@ import (
 )
 
 type API struct {
-	Method   string                 `json:"method"`
-	Path     string                 `json:"path"`
-	Latency  *int                   `json:"latency"`
-	FailRate *float64               `json:"failRate"`
-	Validate *Validate              `json:"validate"`
-	Response map[string]interface{} `json:"response"`
+	Method       string                 `json:"method"`
+	Path         string                 `json:"path"`
+	Latency      *int                   `json:"latency"`
+	FailRate     *float64               `json:"failRate"`
+	Validate     *Validate              `json:"validate"`
+	ResponseType *string                `json:"responseType"`
+	Response     map[string]interface{} `json:"response"`
 }
 
 type Validate struct {
@@ -72,7 +73,7 @@ type App struct {
 }
 
 func loadConfig(app *AppInput) {
-
+	// Read the file
 	file, err := os.ReadFile("input.json")
 	if err != nil {
 		log.Fatal("Error reading file:", err)
@@ -84,13 +85,21 @@ func loadConfig(app *AppInput) {
 		log.Fatal("Error: input.json is empty")
 	}
 
-	// Reading the config from the file
-	err = json.Unmarshal(file, app)
+	// Create a new instance of AppInput
+	//This is a workaround as i had issues where if the key was removed from input the value was not getting updated
+	var newApp AppInput
+
+	// Unmarshal the JSON into the new instance
+	err = json.Unmarshal(file, &newApp)
 	if err != nil {
 		fmt.Println("Error unmarshalling JSON:", err)
 		log.Fatal(err)
 	}
 
+	// Copy the values from the new instance to the existing app instance
+	*app = newApp
+
+	// Set default values if necessary
 	if int(app.Config.Port) == 0 {
 		app.Config.Port = defaultPort
 	}
@@ -145,6 +154,17 @@ func main() {
 	loadConfig(&app)
 	go watchConfigFile("input.json", &app)
 	//starting a server with the port
+	go startServer(&app)
+	fmt.Printf("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
+	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
+	// Wait for interrupt signal to gracefully shutdown the application
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	<-sigChan
+	fmt.Println("Shutting down...")
+}
+
+func startServer(app *AppInput) {
 	http.HandleFunc(fmt.Sprintf("%s/", app.Config.Prefix), func(w http.ResponseWriter, r *http.Request) {
 		// if logging is enabled, log the request
 		if app.Config.Logging != nil && *app.Config.Logging {
@@ -160,7 +180,7 @@ func main() {
 		if app.Config.FailRate != nil {
 			random := rand.Float64()
 			if random < float64(*app.Config.FailRate) {
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				http.Error(w, `{"error":"Internal server Error"}`, http.StatusInternalServerError)
 				return
 			}
 		}
@@ -172,8 +192,6 @@ func main() {
 		for _, api := range app.APIs {
 			if strings.HasPrefix(path, app.Config.Prefix) && api.Path == strings.TrimPrefix(path, app.Config.Prefix) && api.Method == r.Method {
 				found = true
-				// fmt.Print("API Found: ", api)
-				fmt.Print("API Found: ", api.Latency == nil)
 				//check if the latency is provided
 				if api.Latency != nil && *api.Latency != 0 {
 					//sleep for the latency
@@ -187,7 +205,7 @@ func main() {
 					//if the number is less than the fail rate, return an error
 					random := rand.Float64()
 					if random < *api.FailRate {
-						http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+						http.Error(w, `{"error":"Internal server Error"}`, http.StatusInternalServerError)
 						return
 					}
 
@@ -208,30 +226,37 @@ func main() {
 					}
 				}
 				//return the response
-				response := ResponseBuilder(api.Response)
-				json.NewEncoder(w).Encode(response)
-
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("X-Powered-By", "Gobi")
+				// fmt.Println("Response Type: ", string(*api.ResponseType))
+				if api.ResponseType != nil {
+					fmt.Println("api.ResponseType: ", api)
+					fmt.Println("Response Type: ", string(*api.ResponseType))
+					var arrLen = strings.Split(strings.TrimRight(strings.Split(*api.ResponseType, "(")[1], ")"), ",")
+					response := []interface{}{}
+					fmt.Println("Args: ", arrLen[0])
+					arrLenInt, _ := strconv.Atoi(arrLen[0])
+					for i := 0; i < arrLenInt; i++ {
+						response = append(response, ResponseBuilder(api.Response))
+					}
+					json.NewEncoder(w).Encode(response)
+					break
+				} else {
+					response := ResponseBuilder(api.Response)
+					json.NewEncoder(w).Encode(response)
+					break
+				}
 				// fmt.Println("Response: ", response)
 				//Send the response and stop the loop
-
-				break
 
 			}
 		}
 		if !found {
-			http.Error(w, "Not Found", http.StatusNotFound)
+			http.Error(w, `{"error": "API not found"}`, http.StatusNotFound)
 		}
 
 	})
-	fmt.Printf("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
-	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
-	// Wait for interrupt signal to gracefully shutdown the application
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	<-sigChan
-	fmt.Println("Shutting down...")
 }
-
 func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 	response := make(map[string]interface{})
 	fake := faker.New()
