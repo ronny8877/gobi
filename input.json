@@ -2,8 +2,9 @@
     "config":{
         "prefix":"/api",
         "healthCheck": "/health",
-        "latency": 700,
+        "latency": 200,
         "Port": 3000,
+        "logging": true,
         "failRate": 0.2,
         "timeout": 1000,
         "apiKey":  "1234567890ssss"
@@ -13,7 +14,7 @@
         "path":"/user/data",
         "latency":200,
         "method":"GET",
-        "failRate" : 0.1,
+        "failRate" : 0,
         "validate":{
           "query":{
             "id":"String()",
@@ -23,6 +24,7 @@
           }
         },
         "response":{
+          
           "color":{ 
             "color":"Color()",
             "hex":"Color(hex)",
@@ -30,7 +32,6 @@
             "rgba":"Color(rgba)",
             "safe" :"Color(safe)",
             "css":"Color(css)"
-
           },
           "address" :{
             "address":"Address()",
@@ -81,7 +82,6 @@
             "phone":"User(phone)",
             "userName":"User(userName)",
             "password":"User(password)",
-            "image":"User(image)",
             "title":"User(title)",
             "gender":"User(gender)",
             "ssn":"User(ssn)",
@@ -129,7 +129,27 @@
           "app":{
             "appName":"App()",
             "appVersion":"App(version)",
-            "appHomepage":"App(platform)"
+            "platform":"App(platform)"
+          },
+          "vehicle":{
+            "vehicle":"Vehicle()",
+            "vehicleBrand":"Vehicle(brand)",
+            "vehicleType":"Vehicle(type)",
+            "vehicleTransmission":"Vehicle(transmission)",
+            "vehiclePlate":"Vehicle(plate)"
+            },
+          "Time":{
+            "time":"Time()",
+            "unix":"Time(unix)",
+            "unixNano":"Time(unixNano)",
+            "iso":"Time(iso)",
+            "day":"Time(day)",
+            "ansi":"Time(ansi)",
+            "monthName":"Time(monthName)",
+            "timezone":"Time(timezone)"
+          },
+          "Image" :{
+            "image":"Image(dfas)"
           }
 
         }
@@ -141,9 +161,9 @@
         "path":"/test",
         "method":"GET",
         "response":{
-          "name":"String(20)",
-          "address":"String(80)",
-          "display_picture":"*Image()"
+          "name":"User()",
+          "address":"Address()",
+          "display_picture":"Image()"
         }
       }
     ]

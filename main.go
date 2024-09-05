@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/jaswdr/faker/v2"
 )
 
@@ -41,6 +42,7 @@ type AppConfig struct {
 	HealthCheck *string  `json:"healthCheck"`
 	Port        int      `json:"port"`
 	Latency     *int     `json:"latency"`
+	Logging     *bool    `json:"logging"`
 	FailRate    *float32 `json:"failRate"`
 	Timeout     *int32   `json:"timeout"`
 	ApiKey      *string  `json:"apiKey"`
@@ -51,11 +53,13 @@ var defaultFailRate = float32(0.4)
 var defaultTimeout = int32(5000)
 var healthCheck = "/health"
 var defaultPort = 8080
+var defaultLogging = false
 
 var defaultConfig = AppConfig{
 	Prefix:      "/api",
 	HealthCheck: &healthCheck, // Optional field
 	Port:        8080,
+	Logging:     &defaultLogging,  // Optional field
 	Latency:     &defaultLatency,  // Optional field
 	FailRate:    &defaultFailRate, // Optional field
 	Timeout:     &defaultTimeout,  // Optional field
@@ -67,18 +71,24 @@ type App struct {
 	APIs   []API     `json:"api"`
 }
 
-func main() {
+func loadConfig(app *AppInput) {
+
 	file, err := os.ReadFile("input.json")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Error reading file:", err)
 	}
-	//reading the config from the file
-	var app App
-	err = json.Unmarshal(file, &app)
-	if err != nil {
-		fmt.Println("Aight Something went wrong")
-		log.Fatal(err)
 
+	// Check if the file is empty
+	if len(file) == 0 {
+		fmt.Println(string(file))
+		log.Fatal("Error: input.json is empty")
+	}
+
+	// Reading the config from the file
+	err = json.Unmarshal(file, app)
+	if err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		log.Fatal(err)
 	}
 
 	if int(app.Config.Port) == 0 {
@@ -89,8 +99,72 @@ func main() {
 		app.Config.Prefix = defaultConfig.Prefix
 	}
 
+	fmt.Println("Configuration Loaded: ")
+}
+
+func watchConfigFile(filename string, app *AppInput) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal("Error creating watcher:", err)
+	}
+	defer watcher.Close()
+
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					fmt.Println("Config file modified, reloading...")
+					time.Sleep(100 * time.Millisecond) // Add a small delay before reloading as the it was crashing without it
+					loadConfig(app)
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Println("Watcher error:", err)
+			}
+		}
+	}()
+
+	err = watcher.Add(filename)
+	if err != nil {
+		log.Fatal("Error adding file to watcher:", err)
+	}
+	<-done
+}
+
+// TODO Implement the timeout function
+// TODO Implement auth using API key cookie or bearer token
+func main() {
+	var app AppInput
+	loadConfig(&app)
+	go watchConfigFile("input.json", &app)
 	//starting a server with the port
 	http.HandleFunc(fmt.Sprintf("%s/", app.Config.Prefix), func(w http.ResponseWriter, r *http.Request) {
+		// if logging is enabled, log the request
+		if app.Config.Logging != nil && *app.Config.Logging {
+			fmt.Printf("%s %s %s\n", r.Method, r.URL.Path, r.Proto)
+		}
+
+		//If global latency is provided, sleep for that time
+		if app.Config.Latency != nil || *app.Config.Latency != 0 {
+			fmt.Printf("Adding Latency %d ms\n", *app.Config.Latency)
+			time.Sleep(time.Duration(*app.Config.Latency) * time.Millisecond)
+		}
+		//If global fail rate is provided, return an error if the random number is less than the fail rate
+		if app.Config.FailRate != nil {
+			random := rand.Float64()
+			if random < float64(*app.Config.FailRate) {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+		}
+
 		var path = r.URL.Path
 		//check if the path is in the APIs
 		var found = false
@@ -98,15 +172,17 @@ func main() {
 		for _, api := range app.APIs {
 			if strings.HasPrefix(path, app.Config.Prefix) && api.Path == strings.TrimPrefix(path, app.Config.Prefix) && api.Method == r.Method {
 				found = true
+				// fmt.Print("API Found: ", api)
+				fmt.Print("API Found: ", api.Latency == nil)
 				//check if the latency is provided
-				if api.Latency != nil || app.Config.Latency != nil || *app.Config.Latency != 0 {
+				if api.Latency != nil && *api.Latency != 0 {
 					//sleep for the latency
-					fmt.Printf("Sleeping for %d ms\n", *api.Latency)
+					fmt.Printf("Adding Latency %d ms\n", *api.Latency)
 					time.Sleep(time.Duration(*api.Latency) * time.Millisecond)
 
 				}
 				//check if the fail rate is provided
-				if api.FailRate != nil {
+				if api.FailRate != nil && *api.FailRate != 0 {
 					//generate a random number between 0 and 1
 					//if the number is less than the fail rate, return an error
 					random := rand.Float64()
@@ -135,7 +211,7 @@ func main() {
 				response := ResponseBuilder(api.Response)
 				json.NewEncoder(w).Encode(response)
 
-				fmt.Println("Response: ", response)
+				// fmt.Println("Response: ", response)
 				//Send the response and stop the loop
 
 				break
@@ -147,7 +223,6 @@ func main() {
 		}
 
 	})
-	fmt.Print(app.APIs[0].Method)
 	fmt.Printf("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
 	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
 	// Wait for interrupt signal to gracefully shutdown the application
@@ -424,25 +499,55 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return fake.App().Name()
 			}
 		},
-		//TODO : Implement the Date function
-		// "time": func(args *string) interface{} {
-		// 	switch {
-		// 	case args == nil:
-		// 		return fake.Time().DayOfWeek()
-		// 	case *args == "long":
-		// 		return fake.Date().Long()
-		// 	case *args == "short":
-		// 		return fake.Date().Short()
-		// 	case *args == "birthday":
-		// 		return fake.Date().Birthday()
-		// 	case *args == "unix":
-		// 		return fake.Date().Unix()
-		// 	case *args == "unixNano":
-		// 		return fake.Date().UnixNano()
-		// 	default:
-		// 		return fake.Date().Short()
-		// 	}
-		// },
+		"Vehicle": func(args *string) interface{} {
+			switch {
+			case args == nil:
+				return fake.Car().Category()
+			case *args == "brand":
+				return fake.Car().Maker()
+			case *args == "transmission":
+				return fake.Car().TransmissionGear()
+			case *args == "plate":
+				return fake.Car().Plate()
+			case *args == "model":
+				return fake.Car().Model()
+			case *args == "type":
+				return fake.Car().FuelType()
+			default:
+				return fake.Car().Category()
+			}
+		},
+		"Time": func(args *string) interface{} {
+			switch {
+			case args == nil:
+				return time.Now().Format(time.RFC1123Z)
+			case *args == "unix":
+				return time.Now().Unix()
+			case *args == "unixNano":
+				return time.Now().UnixNano()
+			case *args == "iso":
+				return fake.Time().ISO8601(time.Now())
+			case *args == "amPm":
+				return fake.Time().AmPm()
+			case *args == "month":
+				return fake.Time().Month()
+			case *args == "day":
+				return fake.Time().DayOfWeek()
+			case *args == "ansi":
+				return fake.Time().ANSIC(time.Now())
+			case *args == "monthName":
+				return fake.Time().MonthName()
+			case *args == "timezone":
+				return fake.Time().Timezone()
+			default:
+				return time.Now().Format(time.RFC1123Z)
+			}
+		},
+		"Image": func(args *string) interface{} {
+			//TODO : Implement so type of dicebear can be passed along with seed
+			return fmt.Sprintf("https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=%s", *args)
+			//TODO : Implement so Images form other sources can be passed
+		},
 		"Json": func(args *string) interface{} {
 			return fake.Map()
 		},
