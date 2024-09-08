@@ -96,7 +96,7 @@
             "uuid":"User(uuid)",
             "sqlId":"User(sqlId)",
             "image": "User(image)",
-            "diceBearImage" : "Image(initials)"
+            "diceBearImage" : "DiceBearImage(initials)"
           },
           "finance":{
             "credit_card":"Finance(creditCard)",
@@ -155,7 +155,7 @@
             "timezone":"Time(timezone)"
           },
           "Image" :{
-            "image":"Image(dfas)"
+            "dicebear":"DiceBearImage(dfas)"
           }
 
         }
