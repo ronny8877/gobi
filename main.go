@@ -59,13 +59,12 @@ type Auth struct {
 }
 
 type AppConfig struct {
-	Auth        *Auth    `json:"auth"`
-	Prefix      string   `json:"prefix"`
-	HealthCheck *string  `json:"healthCheck"`
-	Port        int      `json:"port"`
-	Latency     *int     `json:"latency"`
-	Logging     *bool    `json:"logging"`
-	FailRate    *float32 `json:"failRate"`
+	Auth     *Auth    `json:"auth"`
+	Prefix   string   `json:"prefix"`
+	Port     int      `json:"port"`
+	Latency  *int     `json:"latency"`
+	Logging  *bool    `json:"logging"`
+	FailRate *float32 `json:"failRate"`
 }
 
 type App struct {
@@ -74,18 +73,16 @@ type App struct {
 }
 
 var defaultLatency = 0
-var defaultFailRate = float32(0.4)
-var healthCheck = "/health"
+var defaultFailRate = float32(0.0)
 var defaultPort = 8080
 var defaultLogging = false
 
 var defaultConfig = AppConfig{
-	Prefix:      "/api",
-	HealthCheck: &healthCheck, // Optional field
-	Port:        8080,
-	Logging:     &defaultLogging,  // Optional field
-	Latency:     &defaultLatency,  // Optional field
-	FailRate:    &defaultFailRate, // Optional field        // Optional field
+	Prefix:   "/api",
+	Port:     8080,
+	Logging:  &defaultLogging,  // Optional field
+	Latency:  &defaultLatency,  // Optional field
+	FailRate: &defaultFailRate, // Optional field        // Optional field
 }
 
 var logger = Logger(true)
@@ -121,10 +118,6 @@ func loadConfig(app *AppInput) error {
 
 	if app.Config.Prefix == "" {
 		app.Config.Prefix = defaultConfig.Prefix
-	}
-
-	if app.Config.HealthCheck == nil {
-		app.Config.HealthCheck = defaultConfig.HealthCheck
 	}
 
 	if app.Config.Latency == nil {
@@ -193,6 +186,14 @@ func main() {
 }
 
 func startServer(app *AppInput) {
+
+	// Health Check
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Powered-By", "Gobi")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
 	//Mock Auth server
 	http.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -240,8 +241,8 @@ func startServer(app *AppInput) {
 		}
 
 		//Global Latency
-		if app.Config.Latency != nil || *app.Config.Latency != 0 {
-			fmt.Printf("Adding Latency %d ms\n", *app.Config.Latency)
+		if *app.Config.Latency != 0 {
+			logger.debug("Adding Latency %d ms\n", *app.Config.Latency)
 			time.Sleep(time.Duration(*app.Config.Latency) * time.Millisecond)
 		}
 		//Global Fail Rate

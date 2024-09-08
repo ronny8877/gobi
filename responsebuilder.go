@@ -392,8 +392,8 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return formatAvatarURL(seed, "adventurer-neutral")
 			}
 			return formatAvatarURL(seed, "adventurer-neutral")
-			//TODO: Implement ImagePlaceholder API
 		},
+		//TODO: Implement ImagePlaceholder API
 		"Message": func(args *string) interface{} {
 			if args == nil {
 				return "Success"
