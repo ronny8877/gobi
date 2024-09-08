@@ -328,7 +328,7 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return time.Now().Format(time.RFC1123Z)
 			}
 		},
-		"Image": func(args *string) interface{} {
+		"DiceBearImage": func(args *string) interface{} {
 			seed := fake.Person().Name()
 			switch {
 			case args == nil:
