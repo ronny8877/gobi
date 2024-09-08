@@ -325,7 +325,7 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			return fmt.Sprintf("https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=%s", *args)
 			//TODO : Implement so Images form other sources can be passed
 		},
-		"Success": func(args *string) interface{} {
+		"Message": func(args *string) interface{} {
 			if args == nil {
 				return "Success"
 			}

@@ -7,7 +7,11 @@
         "logging": true,
         "failRate": 0,
         "timeout": 1000,
-        "apiKey":  "1234567890ssss"
+        "auth":{
+          "apiKey": "1234567890",
+          "bearer": "1234567890",
+          "cookie": "auth=1234567890"
+        }
     },
     "api":[
       {
@@ -15,12 +19,13 @@
         "latency":200,
         "method":"GET",
         "failRate" : 0,
-
+        "auth":{
+          "protected":true,
+          "protectedBy":"apiKey"
+        },
         "validate":{
           "query":["id","name","age","email"],
-            "body": {
-              "uuid": "UUID()"
-          }
+            "body": ["id","name","age","email","uuid"]
         },
         "response":{
           
@@ -152,27 +157,56 @@
           }
 
         }
-        
-          
-
-        
       },{
-        "path":"/test",
+        "path":"/test/",
         "method":"GET",
         
         "validate":{
           "query":["id","name","age","email"],
-            "body": {
-              "uuid": "UUID()"
-           
-          }
+           "body": ["id","name","age","email","uuid"]
         },
         "response":{
           "nested":{
             "name":"User()",
             "address":"Address()",
             "display_picture":"Image(seed)",
-            "message":"Success(any message you want)",
+            "message":"Message(any message you want)",
+            "payment_info":{
+                "credit_card":"Finance(creditCard)",
+                "card_type":"Finance(cardType)",
+                "mask":"Finance(cardExpirationDate)"
+            }
+        }
+        }
+      },
+      {
+        "path":"/user/user/me/id/:me",
+        "method":"GET",
+
+        "response":{
+          "nested":{
+            "name":"User()",
+            "address":"Address()",
+            "display_picture":"Image(seed)",
+            "message":"Message(any message you want)",
+            "payment_info":{
+                "credit_card":"Finance(creditCard)",
+                "card_type":"Finance(cardType)",
+                "mask":"Finance(cardExpirationDate)"
+            }
+        }
+        }
+      },
+      {
+        "path":"/user/user/me/id/:me/name/:name",
+        "method":"GET",
+
+        "response":{
+          "nested":{
+            "name":"User()",
+            "address":"Address()",
+            "display_picture":"Image(seed)",
+            "message":"Message(Name message you want)",
             "payment_info":{
                 "credit_card":"Finance(creditCard)",
                 "card_type":"Finance(cardType)",

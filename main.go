@@ -16,7 +16,22 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+type ProtectedByType string
+
+// Constants for ProtectedByType
+const (
+	APIKey      ProtectedByType = "apiKey"
+	BearerToken ProtectedByType = "BearerToken"
+	Cookies     ProtectedByType = "Cookies"
+)
+
+type APIAuth struct {
+	Protected   *bool            `json:"protected"`
+	ProtectedBy *ProtectedByType `json:"protectedBy"`
+}
+
 type API struct {
+	Auth         *APIAuth               `json:"auth"` // Optional field
 	Method       string                 `json:"method"`
 	Path         string                 `json:"path"`
 	Latency      *int                   `json:"latency"`
@@ -28,7 +43,7 @@ type API struct {
 
 type Validate struct {
 	Query  []string               `json:"query"`
-	Body   map[string]interface{} `json:"body"`
+	Body   []string               `json:"body"`
 	Params map[string]interface{} `json:"params"`
 }
 
@@ -37,15 +52,20 @@ type AppInput struct {
 	APIs   []API     `json:"api"`
 }
 
+type Auth struct {
+	ApiKey      *string `json:"apiKey"`
+	BearerToken *string `json:"bearer"`
+	Cookie      *string `json:"cookie"`
+}
+
 type AppConfig struct {
+	Auth        *Auth    `json:"auth"`
 	Prefix      string   `json:"prefix"`
 	HealthCheck *string  `json:"healthCheck"`
 	Port        int      `json:"port"`
 	Latency     *int     `json:"latency"`
 	Logging     *bool    `json:"logging"`
 	FailRate    *float32 `json:"failRate"`
-	Timeout     *int32   `json:"timeout"`
-	ApiKey      *string  `json:"apiKey"`
 }
 
 type App struct {
@@ -55,7 +75,6 @@ type App struct {
 
 var defaultLatency = 0
 var defaultFailRate = float32(0.4)
-var defaultTimeout = int32(5000)
 var healthCheck = "/health"
 var defaultPort = 8080
 var defaultLogging = false
@@ -66,9 +85,7 @@ var defaultConfig = AppConfig{
 	Port:        8080,
 	Logging:     &defaultLogging,  // Optional field
 	Latency:     &defaultLatency,  // Optional field
-	FailRate:    &defaultFailRate, // Optional field
-	Timeout:     &defaultTimeout,  // Optional field
-	ApiKey:      nil,              // Optional field
+	FailRate:    &defaultFailRate, // Optional field        // Optional field
 }
 
 var logger = Logger(true)
@@ -155,14 +172,11 @@ func watchConfigFile(filename string, app *AppInput) {
 	<-done
 }
 
-// TODO Implement the timeout function
 // TODO Implement auth	 using API key cookie or bearer token
 func main() {
 	var app AppInput
 	loadConfig(&app)
 	go watchConfigFile("input.json", &app)
-	validateBody()
-	//starting a server with the port
 	go startServer(&app)
 	logger.debug("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
 	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
@@ -173,12 +187,41 @@ func main() {
 	fmt.Println("Shutting down...")
 }
 
-// func validateQueryParams(query map[string]interface{}) bool {
-// 	return true
-// }
-
 func startServer(app *AppInput) {
+
+	//Mock Auth server
+	http.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Powered-By", "Gobi")
+		//Send whatever creds we had in the response
+		response := map[string]interface{}{
+			"apiKey":      app.Config.Auth.ApiKey,
+			"bearerToken": app.Config.Auth.BearerToken,
+			"cookie":      app.Config.Auth.Cookie,
+		}
+		// attach the cookie in the header if it is provided
+		if app.Config.Auth.Cookie != nil && *app.Config.Auth.Cookie != "" {
+			cookieParts := strings.SplitN(*app.Config.Auth.Cookie, "=", 2)
+			if len(cookieParts) == 2 {
+				http.SetCookie(w, &http.Cookie{
+					Name:  cookieParts[0],
+					Value: cookieParts[1],
+				})
+			} else {
+				// Handle the case where the cookie string is not in the expected format
+				http.Error(w, "Invalid cookie format", http.StatusInternalServerError)
+			}
+		}
+		//Attach the api key in the header if it is provided
+		if app.Config.Auth.Cookie != nil && *app.Config.Auth.ApiKey != "" {
+			w.Header().Set("X-API-Key", *app.Config.Auth.ApiKey)
+		}
+		json.NewEncoder(w).Encode(response)
+
+	})
+
 	http.HandleFunc(fmt.Sprintf("%s/", app.Config.Prefix), func(w http.ResponseWriter, r *http.Request) {
+
 		// if logging is enabled, log the request
 		if app.Config.Logging != nil && *app.Config.Logging {
 			fmt.Printf("%s %s %s\n", r.Method, r.URL.Path, r.Proto)
@@ -201,9 +244,13 @@ func startServer(app *AppInput) {
 		var path = r.URL.Path
 		//check if the path is in the APIs
 		var found = false
-
 		for _, api := range app.APIs {
-			if strings.HasPrefix(path, app.Config.Prefix) && api.Path == strings.TrimPrefix(path, app.Config.Prefix) && api.Method == r.Method {
+
+			if strings.HasPrefix(path, app.Config.Prefix) && matchPath(fmt.Sprint(app.Config.Prefix, api.Path), r) && api.Method == r.Method {
+				queryParams := parsePathParams(api.Path, r)
+				if app.Config.Logging != nil && *app.Config.Logging {
+					fmt.Println("Path Params: ", queryParams)
+				}
 				found = true
 				//check if the latency is provided
 				if api.Latency != nil && *api.Latency != 0 {
@@ -222,14 +269,22 @@ func startServer(app *AppInput) {
 						return
 					}
 				}
-
+				// Check if we have auth
+				if app.Config.Auth != nil && api.Auth != nil && api.Auth.ProtectedBy != nil && *api.Auth.ProtectedBy != "" {
+					// Check if the auth is provided
+					_, err := auth(&app.Config, &api, r)
+					if err != nil {
+						http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+						return
+					}
+				}
 				//check if the validate is provided
 				if api.Validate != nil {
 					//check if the query parameters are provided
 					if api.Validate.Query != nil {
 						// fmt.Println("Query Params: ", api.Validate.Query)
 						// fmt.Println("Query Params: ", r.URL.Query())
-						_, err := validateQueryParam(api.Validate.Query, r.URL.Query())
+						_, err := validateQuery(api.Validate.Query, r.URL.Query())
 						if err != nil {
 							http.Error(w, `{"error": "Invalid Query Params"}`, http.StatusBadRequest)
 							return
@@ -241,7 +296,12 @@ func startServer(app *AppInput) {
 					}
 					//check if the body is provided
 					if api.Validate.Body != nil {
-						//check if the body is correct
+						_, err := validateBody(api.Validate.Body, r.Body)
+						if err != nil {
+							http.Error(w, `{"error": "Invalid Body"}`, http.StatusBadRequest)
+							return
+						}
+
 					}
 					//check if the params are provided
 					if api.Validate.Params != nil {
@@ -285,17 +345,4 @@ func parseValueBwBrackets(value string) (string, string) {
 	var args = strings.Split(value, "(")[1]
 	args = strings.TrimRight(args, ")")
 	return name, args
-}
-
-func validateQueryParam(query []string, rQuery map[string][]string) (bool, error) {
-	//  if both dose not have the same length then return false
-	if len(query) != len(rQuery) {
-		return false, fmt.Errorf("mismatch in query params")
-	}
-	for _, q := range query {
-		if _, ok := rQuery[q]; !ok {
-			return false, fmt.Errorf("mismatch in query params")
-		}
-	}
-	return true, nil
 }
