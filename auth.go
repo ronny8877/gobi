@@ -7,48 +7,68 @@ import (
 )
 
 func auth(config *AppConfig, api *API, r *http.Request) (bool, error) {
-
-	if *api.Auth.ProtectedBy == "apiKey" {
-		if r.Header.Get("X-API-Key") == *config.Auth.ApiKey || r.URL.Query().Get("apiKey") == *config.Auth.ApiKey {
-			return true, nil
-		} else {
-			return false, errors.New("invalid API Key")
-		}
+	if api.Auth == nil || api.Auth.ProtectedBy == nil {
+		return false, errors.New("authentication method not specified")
 	}
 
-	if *api.Auth.ProtectedBy == "bearer" {
-		bearerToken := r.Header.Get("Authorization")
-		if bearerToken == "" {
-			return false, errors.New("bearer token is missing")
-		}
+	switch *api.Auth.ProtectedBy {
+	case "apiKey":
+		return validateAPIKey(config, r)
+	case "bearer":
+		return validateBearerToken(config, r)
+	case "cookie":
+		return validateCookie(config, r)
+	default:
+		return false, errors.New("unsupported authentication method")
+	}
 
-		// Split the token and compare
-		parts := strings.Split(bearerToken, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" || parts[1] != *config.Auth.BearerToken {
-			return false, errors.New("bearer token is invalid")
-		}
+}
 
+func validateAPIKey(config *AppConfig, r *http.Request) (bool, error) {
+	if config.Auth == nil || config.Auth.ApiKey == nil {
+		return false, errors.New("API key not configured")
+	}
+	apiKey := r.Header.Get("X-API-Key")
+	if apiKey == "" {
+		apiKey = r.URL.Query().Get("apiKey")
+	}
+	if apiKey == *config.Auth.ApiKey {
 		return true, nil
 	}
+	return false, errors.New("invalid API key")
+}
 
-	if *api.Auth.ProtectedBy == "cookie" {
-		cookies := r.Cookies()
-		for _, cookie := range cookies {
-			if cookie.Name == "auth" {
-				if cookie.Value != strings.Split(*config.Auth.Cookie, "=")[1] {
-					return false, errors.New("cookie is invalid")
-				}
-				// TODO : Add More validation for cookie
-				// if cookie.Expires.Before(time.Now()) {
-				// 	return false, errors.New("cookie is expired")
-				// }
-				return true, nil
-			}
-		}
-		return false, errors.New("auth_cookie is missing")
+func validateBearerToken(config *AppConfig, r *http.Request) (bool, error) {
+	if config.Auth == nil || config.Auth.BearerToken == nil {
+		return false, errors.New("bearer token not configured")
 	}
+	bearerToken := r.Header.Get("Authorization")
+	if bearerToken == "" {
+		return false, errors.New("bearer token is missing")
+	}
+	parts := strings.Split(bearerToken, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" || parts[1] != *config.Auth.BearerToken {
+		return false, errors.New("bearer token is invalid")
+	}
+	return true, nil
+}
 
-	// Other authentication methods (apiKey, bearer)...
-	return false, errors.New("unsupported authentication method")
-
+func validateCookie(config *AppConfig, r *http.Request) (bool, error) {
+	if config.Auth == nil || config.Auth.Cookie == nil {
+		return false, errors.New("cookie not configured")
+	}
+	expectedCookieValue := strings.Split(*config.Auth.Cookie, "=")[1]
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == "auth" {
+			if cookie.Value != expectedCookieValue {
+				return false, errors.New("cookie is invalid")
+			}
+			// TODO: Add more validation for cookie
+			// if cookie.Expires.Before(time.Now()) {
+			// 	return false, errors.New("cookie is expired")
+			// }
+			return true, nil
+		}
+	}
+	return false, errors.New("auth cookie is missing")
 }

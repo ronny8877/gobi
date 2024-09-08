@@ -94,7 +94,9 @@
             "age":"Age()",
             "gamer_tag":"User(gamerTag)",
             "uuid":"User(uuid)",
-            "sqlId":"User(sqlId)"
+            "sqlId":"User(sqlId)",
+            "image": "User(image)",
+            "diceBearImage" : "Image(initials)"
           },
           "finance":{
             "credit_card":"Finance(creditCard)",

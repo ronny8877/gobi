@@ -116,6 +116,10 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return fake.Phone().Number()
 			case *args == "password":
 				return fake.Internet().Password()
+			case *args == "passwordMd5":
+				return fake.Hash().MD5()
+			case *args == "passwordSha256":
+				return fake.Hash().SHA256()
 			case *args == "userName":
 				return fake.Internet().User()
 			case *args == "title":
@@ -137,10 +141,10 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			case *args == "birthday":
 				rand.Seed(time.Now().UnixNano())
 
-				// Generate random values within a reasonable range
-				years := rand.Intn(21) - 10  // Random number between -10 and 10
-				months := rand.Intn(25) - 12 // Random number between -12 and 12
-				days := rand.Intn(61) - 30   // Random number between -30 and 30
+				// TODO ChAT GPT CODE DEBUG LATER
+				years := rand.Intn(21) - 10
+				months := rand.Intn(25) - 12
+				days := rand.Intn(61) - 30
 
 				// Add the random values to the current date
 				randomDate := time.Now().AddDate(years, months, days)
@@ -148,7 +152,7 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				// Return the random date
 				return randomDate
 			case *args == "image":
-				return fmt.Sprintf("https://randomuser.me/api/portraits/med/%d.jpg", fake.RandomDigit())
+				return fmt.Sprintf("https://randomuser.me/api/portraits/med/men/%d.jpg", fake.RandomDigit())
 			default:
 				return fake.Person().Name()
 			}
@@ -247,8 +251,12 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			return fake.BoolWithChance(50)
 		},
 		"Array": func(args *string) interface{} {
-			//TODO : implement the SO  the array length can be passed
-			return []interface{}{fake.Person().Name(), fake.Person().Name(), fake.Person().Name()}
+			var result []string
+			for i := 0; i < 20; i++ {
+				result = append(result, fake.RandomStringElement([]string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}))
+			}
+			return result
+
 		},
 		"Language": func(args *string) interface{} {
 			switch {
@@ -321,9 +329,70 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			}
 		},
 		"Image": func(args *string) interface{} {
-			//TODO : Implement so type of dicebear can be passed along with seed
-			return fmt.Sprintf("https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=%s", *args)
-			//TODO : Implement so Images form other sources can be passed
+			seed := fake.Person().Name()
+			switch {
+			case args == nil:
+				return formatAvatarURL(seed, "adventurer-neutral")
+			case *args == "adventurer-neutral":
+				return formatAvatarURL(seed, "adventurer-neutral")
+			case *args == "avataaars":
+				return formatAvatarURL(seed, "avataaars")
+			case *args == "avataaars-neutral":
+				return formatAvatarURL(seed, "avataaars-neutral")
+			case *args == "big-ears":
+				return formatAvatarURL(seed, "big-ears")
+			case *args == "big-ears-neutral":
+				return formatAvatarURL(seed, "big-ears-neutral")
+			case *args == "big-smile":
+				return formatAvatarURL(seed, "big-smile")
+			case *args == "bottts":
+				return formatAvatarURL(seed, "bottts")
+			case *args == "bottts-neutral":
+				return formatAvatarURL(seed, "bottts-neutral")
+			case *args == "croodles":
+				return formatAvatarURL(seed, "croodles")
+			case *args == "croodles-neutral":
+				return formatAvatarURL(seed, "croodles-neutral")
+			case *args == "dylan":
+				return formatAvatarURL(seed, "dylan")
+			case *args == "fun-emoji":
+				return formatAvatarURL(seed, "fun-emoji")
+			case *args == "identicon":
+				return formatAvatarURL(seed, "identicon")
+			case *args == "initials":
+				return formatAvatarURL(seed, "initials")
+			case *args == "glass":
+				return formatAvatarURL(seed, "glass")
+			case *args == "lorelei":
+				return formatAvatarURL(seed, "lorelei")
+			case *args == "lorelei-neutral":
+				return formatAvatarURL(seed, "lorelei-neutral")
+			case *args == "micah":
+				return formatAvatarURL(seed, "micah")
+			case *args == "miniavs":
+				return formatAvatarURL(seed, "miniavs")
+			case *args == "notionists":
+				return formatAvatarURL(seed, "notionists")
+			case *args == "notionists-neutral":
+				return formatAvatarURL(seed, "notionists-neutral")
+			case *args == "open-peeps":
+				return formatAvatarURL(seed, "open-peeps")
+			case *args == "personas":
+				return formatAvatarURL(seed, "personas")
+			case *args == "pixel-art":
+				return formatAvatarURL(seed, "pixel-art")
+			case *args == "pixel-art-neutral":
+				return formatAvatarURL(seed, "pixel-art-neutral")
+			case *args == "rings":
+				return formatAvatarURL(seed, "rings")
+			case *args == "shapes":
+				return formatAvatarURL(seed, "shapes")
+			case *args == "thumbs":
+			default:
+				return formatAvatarURL(seed, "adventurer-neutral")
+			}
+			return formatAvatarURL(seed, "adventurer-neutral")
+			//TODO: Implement ImagePlaceholder API
 		},
 		"Message": func(args *string) interface{} {
 			if args == nil {
