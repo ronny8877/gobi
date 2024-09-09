@@ -135,8 +135,6 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return fake.Lorem().Paragraph(1)
 			case *args == "gamerTag":
 				return fake.Gamer().Tag()
-			case *args == "uuid":
-				return fake.UUID().V4()
 			case *args == "sqlId":
 				// return an integer between 1 and 100000
 				return fake.Int64Between(1, 100000)
@@ -512,6 +510,9 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 		},
 		"Json": func(args *string) interface{} {
 			return fake.Map()
+		},
+		"UUID": func(args *string) interface{} {
+			return fake.UUID().V4()
 		},
 	}
 
