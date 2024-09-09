@@ -7,7 +7,8 @@
       "response":{
         "name" :"User()",
         "address":"Address()",
-        "avatar":"DiceBearImage(seed)"
+        "avatar":"DiceBearImage(seed)",
+        "array":"Array(2000)"
       }
     }
   ]

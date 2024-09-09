@@ -251,12 +251,19 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			return fake.BoolWithChance(50)
 		},
 		"Array": func(args *string) interface{} {
+			var alen int
+			if args == nil {
+				alen = 20
+			} else if num, err := strconv.Atoi(*args); err == nil {
+				alen = num
+			} else {
+				alen = 20
+			}
 			var result []string
-			for i := 0; i < 20; i++ {
-				result = append(result, fake.RandomStringElement([]string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}))
+			for i := 0; i < alen; i++ {
+				result = append(result, fake.Lorem().Word())
 			}
 			return result
-
 		},
 		"Language": func(args *string) interface{} {
 			switch {
