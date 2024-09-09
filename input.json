@@ -9,8 +9,9 @@
         "address":"Address()",
         "avatar":"DiceBearImage(seed)",
         "array":"Array()",
-        "arrayAdvanced":"Array(len=5,type=User(email))",
-        "picsum":"LoremPicsum()"
+        "arrayAdvanced":"Array(len=9)",
+        "picsum":"LoremPicsum(width=200,height=300)",
+        "Palcehold":"Placehold(width=1024)"
       }
     }
   ]

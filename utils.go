@@ -80,6 +80,12 @@ func formatAvatarURL(seed, avatarType string) string {
 }
 
 func parseArguments(args string) (map[string]string, error) {
+	//!NOTE the way this function parses is not considerate of nested values
+	//If we pass something like  Array(len=5,type=Array(len=5,type=Finance(creditCard)))
+	//It's not going to work. Although the fix will be easy But will require quite a bit of change
+	//Right now Response Builder calls a really simple parseValueBwBrackets function which breaks the value in two and remove brackets considering the second part as args
+	//LAter i should fix this function to handle nested values and replace the parseValueBwBrackets function
+	//As both function are Doing somewhat similar thing
 	result := make(map[string]string)
 	parts := strings.Split(args, ",")
 	for _, part := range parts {

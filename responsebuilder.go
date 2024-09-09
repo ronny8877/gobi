@@ -161,7 +161,7 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 		"Finance": func(args *string) interface{} {
 			switch {
 			case args == nil:
-				return "Finance Needs an argument"
+				return fake.Int64Between(1000, 10000000)
 			case *args == "creditCard":
 				return fake.Payment().CreditCardNumber()
 			case *args == "cardType":
@@ -186,7 +186,7 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			case *args == "ethAddress":
 				return fake.Crypto().EtheriumAddress()
 			default:
-				return "Finance Needs an argument"
+				return fmt.Sprintf("%s Not a valid Finance Argument", *args)
 			}
 
 		},
@@ -230,7 +230,6 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			if args == nil {
 				return rand.Intn(10000)
 			}
-			//if the argument is passed then convert it to int
 			if val, err := strconv.Atoi(*args); err == nil {
 				return rand.Intn(val)
 			}
@@ -253,7 +252,7 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 		"Array": func(args *string) interface{} {
 			var alen int
 			var dataType string
-			var result []string
+			var result []interface{}
 			alen = 5
 			dataType = "User()"
 
@@ -275,7 +274,24 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				dataType = val
 			}
 			for i := 0; i < alen; i++ {
-				result = append(result, ResponseBuilder(map[string]interface{}{"type": dataType})["type"].(string))
+				if dataType == "Json()" {
+					result = append(result, fake.Map())
+					continue
+				}
+				if dataType == "Array()" {
+					result = append(result, fake.Lorem().Word())
+					continue
+				}
+				response := ResponseBuilder(map[string]interface{}{"type": dataType})
+				if value, ok := response["type"].(string); ok {
+					result = append(result, value)
+				} else if value, ok := response["type"].(map[string]interface{}); ok {
+					result = append(result, value)
+				} else if value, ok := response["type"].([]interface{}); ok {
+					result = append(result, value)
+				} else {
+					result = append(result, "unexpected_type")
+				}
 			}
 			return result
 		},
@@ -414,8 +430,43 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			}
 			return formatAvatarURL(seed, "adventurer-neutral")
 		},
-		"ImagePlaceholder": func(args *string) interface{} {
-			return "ImagePlaceholder API not implemented yet"
+		"Placehold": func(args *string) interface{} {
+			var width, height int
+			var text, font, color, bgColor string
+			if *args == "" {
+				return "https://placehold.co/600x400"
+			} else {
+				width = 600
+				height = 400
+				text = "Hello World"
+				font = "Montserrat"
+				color = "000000"
+				bgColor = "FFF"
+				parsedArgs, err := parseArguments(*args)
+				if err != nil {
+					return err.Error()
+				}
+				if val, ok := parsedArgs["width"]; ok {
+					width, _ = strconv.Atoi(val)
+				}
+				if val, ok := parsedArgs["height"]; ok {
+					height, _ = strconv.Atoi(val)
+				}
+				if val, ok := parsedArgs["text"]; ok {
+					text = val
+				}
+				if val, ok := parsedArgs["font"]; ok {
+					font = val
+				}
+				if val, ok := parsedArgs["color"]; ok {
+					color = val
+				}
+				if val, ok := parsedArgs["bgColor"]; ok {
+					bgColor = val
+				}
+			}
+			return fmt.Sprintf("https://placehold.co/%dx%d/%s/%s?text=%s&font=%s", width, height, color, bgColor, text, font)
+
 		},
 		"LoremPicsum": func(args *string) interface{} {
 			var width, height, blur, id int
