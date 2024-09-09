@@ -11,7 +11,10 @@ import (
 
 func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 	response := make(map[string]interface{})
-	fake := faker.New()
+	//LOL FUNNY FIX
+	seed := time.Now().UnixNano()
+	source := rand.NewSource(seed + rand.Int63())
+	fake := faker.NewWithSeed(source)
 	funcMap := map[string]func(*string) interface{}{
 		"Address": func(args *string) interface{} {
 			switch {
@@ -188,7 +191,6 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			default:
 				return fmt.Sprintf("%s Not a valid Finance Argument", *args)
 			}
-
 		},
 		"Lorem": func(args *string) interface{} {
 			switch {
@@ -205,7 +207,6 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			default:
 				return fake.Lorem().Sentence(20)
 			}
-
 		},
 		"Color": func(args *string) interface{} {
 			switch {

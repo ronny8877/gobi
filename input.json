@@ -9,7 +9,7 @@
         "address":"Address()",
         "avatar":"DiceBearImage(seed)",
         "array":"Array()",
-        "arrayAdvanced":"Array(len=9)",
+        "arrayAdvanced":"Array(len=10000,type=User())",
         "picsum":"LoremPicsum(width=200,height=300)",
         "Palcehold":"Placehold(width=1024)"
       }
