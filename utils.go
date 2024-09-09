@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -78,25 +79,15 @@ func formatAvatarURL(seed, avatarType string) string {
 	return fmt.Sprintf("https://api.dicebear.com/9.x/%s/svg?seed=%s", avatarType, seed)
 }
 
-// func generateUuid() string {
-// 	return uuid.New().String()
-// }
-
-// func generateBearerToken() (string, error) {
-// 	return jwt.New(jwt.SigningMethodHS256).SignedString([]byte("secret"))
-// }
-
-// func createCookie(auth_id string) *http.Cookie {
-// 	// Craft a new cookie with the greeting "Hello world!" and additional attributes.
-// 	newCookie := http.Cookie{
-// 		Name:     "auth_id",
-// 		Value:    auth_id,
-// 		Path:     "/",
-// 		MaxAge:   3600,
-// 		HttpOnly: true,
-// 		Secure:   true,
-// 		SameSite: http.SameSiteLaxMode,
-// 	}
-// 	return &newCookie
-// 	// Dispatch the cookie to the client using the http.SetCookie() method.
-// }
+func parseArguments(args string) (map[string]string, error) {
+	result := make(map[string]string)
+	parts := strings.Split(args, ",")
+	for _, part := range parts {
+		keyValue := strings.Split(part, "=")
+		if len(keyValue) != 2 {
+			return nil, errors.New("invalid argument format: " + part)
+		}
+		result[keyValue[0]] = keyValue[1]
+	}
+	return result, nil
+}

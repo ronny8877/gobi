@@ -8,7 +8,9 @@
         "name" :"User()",
         "address":"Address()",
         "avatar":"DiceBearImage(seed)",
-        "array":"Array(2000)"
+        "array":"Array()",
+        "arrayAdvanced":"Array(len=5,type=User(email))",
+        "picsum":"LoremPicsum()"
       }
     }
   ]

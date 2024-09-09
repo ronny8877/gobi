@@ -252,16 +252,30 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 		},
 		"Array": func(args *string) interface{} {
 			var alen int
-			if args == nil {
-				alen = 20
-			} else if num, err := strconv.Atoi(*args); err == nil {
-				alen = num
-			} else {
-				alen = 20
-			}
+			var dataType string
 			var result []string
+			alen = 5
+			dataType = "User()"
+
+			if *args == "" {
+				for i := 0; i < alen; i++ {
+					result = append(result, fake.Lorem().Word())
+				}
+				return result
+			}
+			pargs, err := parseArguments(*args)
+
+			if err != nil {
+				return err.Error()
+			}
+			if val, ok := pargs["len"]; ok {
+				alen, _ = strconv.Atoi(val)
+			}
+			if val, ok := pargs["type"]; ok {
+				dataType = val
+			}
 			for i := 0; i < alen; i++ {
-				result = append(result, fake.Lorem().Word())
+				result = append(result, ResponseBuilder(map[string]interface{}{"type": dataType})["type"].(string))
 			}
 			return result
 		},
@@ -400,7 +414,44 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			}
 			return formatAvatarURL(seed, "adventurer-neutral")
 		},
-		//TODO: Implement ImagePlaceholder API
+		"ImagePlaceholder": func(args *string) interface{} {
+			return "ImagePlaceholder API not implemented yet"
+		},
+		"LoremPicsum": func(args *string) interface{} {
+			var width, height, blur, id int
+			var grayscale bool
+
+			if *args == "" {
+				return "https://picsum.photos/200/300"
+			} else {
+				width = 200
+				height = 200
+				blur = 1
+				grayscale = false
+				id = rand.Intn(1000)
+				parsedArgs, err := parseArguments(*args)
+				if err != nil {
+					return err.Error()
+				}
+				if val, ok := parsedArgs["width"]; ok {
+					width, _ = strconv.Atoi(val)
+				}
+				if val, ok := parsedArgs["height"]; ok {
+					height, _ = strconv.Atoi(val)
+				}
+				if val, ok := parsedArgs["blur"]; ok {
+					blur, _ = strconv.Atoi(val)
+				}
+				if val, ok := parsedArgs["grayscale"]; ok {
+					grayscale, _ = strconv.ParseBool(val)
+				}
+			}
+			if grayscale {
+				return fmt.Sprintf("https://picsum.photos/%d/%d?blur=%d&grayscale&id=%d", width, height, blur, id)
+			}
+			return fmt.Sprintf("https://picsum.photos/%d/%d?blur=%d&id=%d", width, height, blur, id)
+
+		},
 		"Message": func(args *string) interface{} {
 			if args == nil {
 				return "Success"
