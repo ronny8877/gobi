@@ -2,17 +2,52 @@
   "config":{},
   "api":[
     {
-      "path":"/user/data",
+      "path":"/test",
       "method":"GET",
       "response":{
-        "name" :"User()",
-        "address":"Address()",
-        "avatar":"DiceBearImage(seed)",
-        "array":"Array()",
-        "arrayAdvanced":"Array(len=10000,type=User())",
-        "arrayAdvancedWIthP":"Array(len=10000,type=DiceBearImage())",
-        "picsum":"LoremPicsum(width=200,height=300)",
-        "Palcehold":"Placehold(width=1024)"
+        "message":"Message(Hello World)"
+      }
+    },
+    {
+      "path":"/user",
+      "method":"POST",
+      "validate":{
+      "body":["name","email","password"]
+      },
+      "response":{
+        "message":"Message(User created successfully)"
+      }
+    },
+    {
+      "path":"/user",
+      "method":"DELETE",
+      "validate":{
+      "query":["id"]
+      },
+      "response":{
+        "message":"User deleted successfully"
+      }
+    },
+    {
+      "path":"/user",
+      "method":"GET",
+      "response":{
+        "name":"User()",
+        "uuid":"Uuid()",
+        "email":"User(email)",
+        "username":"User(username)",
+        "password":"User(password)",
+        "previous_usernames":"Array(len=5,type=User(username))",
+        "Age":"Age()",
+        "payment": {
+          "credit_card": "Finance(creditCard)",
+          "exp": "Finance(cardExpirationDate)",
+          "crypto": {
+            "currency": "Finance(currency)",
+            "amount": "Finance()",
+            "btc": "Finance(btcAddress)"
+          } 
+        }
       }
     }
   ]

@@ -93,6 +93,29 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return fake.Internet().SafeEmail()
 			case *args == "statusCodeMessage":
 				return fake.Internet().StatusCodeMessage()
+			case *args == "sha256":
+				return fake.Hash().SHA256()
+			case *args == "md5":
+				return fake.Hash().MD5()
+			case *args == "sha512":
+				return fake.Hash().SHA512()
+
+			case *args == "userAgent":
+				var userAgent = [...]string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+					"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/117.0",
+					"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:119.0) Gecko/20100101 Firefox/119.0",
+					"Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/537.36",
+					"Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1",
+					"Mozilla/5.0 (Android 13; Mobile; rv:119.0) Gecko/119.0 Firefox/119.0",
+					"Mozilla/5.0 (Android 13; Tablet; rv:117.0) Gecko/117.0 Firefox/117.0",
+					"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/114.0.0.0 Safari/537.36",
+					"Mozilla/5.0 (Linux; Android 10; SM-G960U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+					"Mozilla/5.0 (Linux; Android 12; SM-T820) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"}
+				return userAgent[rand.Intn(len(userAgent))]
+
+			case *args == "sqlId":
+				// return an integer between 1 and 100000
+				return fake.Int64Between(1, 100000)
 			default:
 				return fake.Internet().URL()
 			}
@@ -119,11 +142,7 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return fake.Phone().Number()
 			case *args == "password":
 				return fake.Internet().Password()
-			case *args == "passwordMd5":
-				return fake.Hash().MD5()
-			case *args == "passwordSha256":
-				return fake.Hash().SHA256()
-			case *args == "userName":
+			case *args == "username":
 				return fake.Internet().User()
 			case *args == "title":
 				return fake.Person().Title()
@@ -132,13 +151,9 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			case *args == "ssn":
 				return fake.Person().SSN()
 			case *args == "bio":
-				return fake.Lorem().Paragraph(1)
+				return fake.Lorem().Sentence(20)
 			case *args == "gamerTag":
 				return fake.Gamer().Tag()
-			case *args == "sqlId":
-				// return an integer between 1 and 100000
-				return fake.Int64Between(1, 100000)
-
 			case *args == "birthday":
 				rand.Seed(time.Now().UnixNano())
 
@@ -158,10 +173,10 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return fake.Person().Name()
 			}
 		},
-		"Age": func(args *string) interface{} { return rand.Intn(100) },
+		"Age": func(args *string) interface{} { return fake.Int8Between(10, 100) },
 		"Finance": func(args *string) interface{} {
 			switch {
-			case args == nil:
+			case *args == "":
 				return fake.Int64Between(1000, 10000000)
 			case *args == "creditCard":
 				return fake.Payment().CreditCardNumber()
@@ -178,8 +193,6 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			case *args == "currencyAndCode":
 				curr, code := fake.Currency().CurrencyAndCode()
 				return fmt.Sprintf("%s (%s)", curr, code)
-			case *args == "amount":
-				return fake.Int64Between(1000, 10000000)
 			case *args == "amountWithCurrency":
 				return fmt.Sprintf("%d %s", fake.Int64Between(1000, 100000), fake.Currency().Code())
 			case *args == "btcAddress":
@@ -227,12 +240,12 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 		"Int": func(args *string) interface{} {
 			// If no arguments are provided, return a random integer between 0 and 100
 			if args == nil {
-				return rand.Intn(10000)
+				return fake.Int64Between(1, 1000000)
 			}
 			if val, err := strconv.Atoi(*args); err == nil {
 				return rand.Intn(val)
 			}
-			return fake.RandomDigit()
+			return fake.Int64Between(1, 1000000)
 		},
 		"Float": func(args *string) interface{} {
 			// If no arguments are provided, return a random float between 0 and 100
@@ -511,7 +524,7 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 		"Json": func(args *string) interface{} {
 			return fake.Map()
 		},
-		"UUID": func(args *string) interface{} {
+		"Uuid": func(args *string) interface{} {
 			return fake.UUID().V4()
 		},
 	}

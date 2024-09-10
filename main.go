@@ -42,9 +42,8 @@ type API struct {
 }
 
 type Validate struct {
-	Query  []string               `json:"query"`
-	Body   []string               `json:"body"`
-	Params map[string]interface{} `json:"params"`
+	Query *[]string `json:"query"`
+	Body  *[]string `json:"body"`
 }
 
 type AppInput struct {
@@ -188,6 +187,7 @@ func main() {
 func startServer(app *AppInput) {
 
 	// Health Check
+	//So with even a minimal setup, we can check if the server is running
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Powered-By", "Gobi")
@@ -300,7 +300,7 @@ func startServer(app *AppInput) {
 				if api.Validate != nil {
 					//Query Validation
 					if api.Validate.Query != nil {
-						_, err := validateQuery(api.Validate.Query, r.URL.Query())
+						_, err := validateQuery(*api.Validate.Query, r.URL.Query())
 						if err != nil {
 							http.Error(w, `{"error": "Invalid Query Params"}`, http.StatusBadRequest)
 							return
@@ -308,11 +308,10 @@ func startServer(app *AppInput) {
 						if app.Config.Logging != nil && *app.Config.Logging {
 							logger.debug("Valid Query Params")
 						}
-
 					}
 					//Body Validation
 					if api.Validate.Body != nil {
-						_, err := validateBody(api.Validate.Body, r.Body)
+						_, err := validateBody(*api.Validate.Body, r.Body)
 						if err != nil {
 							http.Error(w, `{"error": "Invalid Body"}`, http.StatusBadRequest)
 							return
