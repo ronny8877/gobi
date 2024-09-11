@@ -46,11 +46,6 @@ type Validate struct {
 	Body  *[]string `json:"body"`
 }
 
-type AppInput struct {
-	Config AppConfig `json:"config"`
-	APIs   []API     `json:"api"`
-}
-
 type Auth struct {
 	ApiKey      *string `json:"apiKey"`
 	BearerToken *string `json:"bearer"`
@@ -67,8 +62,9 @@ type AppConfig struct {
 }
 
 type App struct {
-	Config AppConfig `json:"config"`
-	APIs   []API     `json:"api"`
+	Config AppConfig               `json:"config"`
+	Ref    *map[string]interface{} `json:"ref"`
+	APIs   []API                   `json:"api"`
 }
 
 var defaultLatency = 0
@@ -86,7 +82,7 @@ var defaultConfig = AppConfig{
 
 var logger = Logger(true)
 
-func loadConfig(app *AppInput) error {
+func loadConfig(app *App) error {
 	// Read the file
 	file, err := os.ReadFile("input.json")
 	if err != nil {
@@ -99,7 +95,7 @@ func loadConfig(app *AppInput) error {
 	}
 
 	// Create a new instance of AppInput
-	var newApp AppInput
+	var newApp App
 
 	// Unmarshal the JSON into the new instance
 	err = json.Unmarshal(file, &newApp)
@@ -127,7 +123,7 @@ func loadConfig(app *AppInput) error {
 	return nil
 }
 
-func watchConfigFile(filename string, app *AppInput) {
+func watchConfigFile(filename string, app *App) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal("Error creating watcher:", err)
@@ -166,8 +162,9 @@ func watchConfigFile(filename string, app *AppInput) {
 	<-done
 }
 
+var app App
+
 func main() {
-	var app AppInput
 	// Load the configuration
 	loadConfig(&app)
 	go watchConfigFile("input.json", &app)
@@ -184,7 +181,7 @@ func main() {
 	fmt.Println("Shutting down...")
 }
 
-func startServer(app *AppInput) {
+func startServer(app *App) {
 
 	// Health Check
 	//So with even a minimal setup, we can check if the server is running

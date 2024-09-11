@@ -1,54 +1,36 @@
 {
-  "config":{},
-  "api":[
-    {
-      "path":"/test",
-      "method":"GET",
-      "response":{
-        "message":"Message(Hello World)"
-      }
-    },
-    {
-      "path":"/user",
-      "method":"POST",
-      "validate":{
-      "body":["name","email","password"]
-      },
-      "response":{
-        "message":"Message(User created successfully)"
-      }
-    },
-    {
-      "path":"/user",
-      "method":"DELETE",
-      "validate":{
-      "query":["id"]
-      },
-      "response":{
-        "message":"User deleted successfully"
-      }
-    },
-    {
-      "path":"/user",
-      "method":"GET",
-      "response":{
-        "name":"User()",
-        "uuid":"Uuid()",
+  "config":{
+    "latency": 200,
+    "auth":{
+      "bearer": "1234567890"
+    }
+
+  },
+  "ref":{
+    "UserData":{
+      "email":"User(email)",
+      "username":"User(username)",
+      "password":"User(password)",
+      "uuid":"Uuid()",
+      "nesting":{
         "email":"User(email)",
         "username":"User(username)",
         "password":"User(password)",
-        "previous_usernames":"Array(len=5,type=User(username))",
-        "Age":"Age()",
-        "payment": {
-          "credit_card": "Finance(creditCard)",
-          "exp": "Finance(cardExpirationDate)",
-          "crypto": {
-            "currency": "Finance(currency)",
-            "amount": "Finance()",
-            "btc": "Finance(btcAddress)"
-          } 
-        }
+        "uuid":"Uuid()"
       }
     }
+  },
+  "api":[
+    {
+      "path":"/collections",
+      "method":"GET",
+      "response":{
+        "test":"Array(len=10,type=Ref(ref.UserData))",
+        "test2":"Ref(ref.UserData)",
+        "Num":"Int(min=99,max=200000)",
+        "Bool":"Bool()"
+      }
+    }
+   
   ]
 }

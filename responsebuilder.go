@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jaswdr/faker/v2"
@@ -173,7 +174,6 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return fake.Person().Name()
 			}
 		},
-		"Age": func(args *string) interface{} { return fake.Int8Between(10, 100) },
 		"Finance": func(args *string) interface{} {
 			switch {
 			case *args == "":
@@ -204,17 +204,34 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			}
 		},
 		"Lorem": func(args *string) interface{} {
-			switch {
-			case args == nil:
-				return fake.Lorem().Text(20)
-			case *args == "word":
-				return fake.Lorem().Word()
-			case *args == "sentence":
+			len := 1
+			Ltype := "sentence"
+			if args == nil {
 				return fake.Lorem().Sentence(20)
-			case *args == "paragraph":
-				return fake.Lorem().Paragraph(1)
-			case *args == "paragraphs":
-				return fake.Lorem().Paragraphs(2)
+			}
+			parsedArgs, err := parseArguments(*args)
+			if err != nil {
+				return err.Error()
+			}
+			if val, ok := parsedArgs["len"]; ok {
+				len, _ = strconv.Atoi(val)
+			}
+			if val, ok := parsedArgs["type"]; ok {
+				Ltype = val
+			}
+			switch Ltype {
+			case "paragraph":
+				return fake.Lorem().Paragraph(len)
+			case "sentence":
+				return fake.Lorem().Sentence(len)
+			case "sentences":
+				return fake.Lorem().Sentences(len)
+			case "paragraphs":
+				return fake.Lorem().Paragraphs(len)
+			case "word":
+				return fake.Lorem().Word()
+			case "words":
+				return fake.Lorem().Words(len)
 			default:
 				return fake.Lorem().Sentence(20)
 			}
@@ -238,27 +255,55 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			}
 		},
 		"Int": func(args *string) interface{} {
-			// If no arguments are provided, return a random integer between 0 and 100
+			min := 0
+			max := 100
 			if args == nil {
 				return fake.Int64Between(1, 1000000)
 			}
-			if val, err := strconv.Atoi(*args); err == nil {
-				return rand.Intn(val)
+			parsedArgs, err := parseArguments(*args)
+			if err != nil {
+				return err.Error()
 			}
-			return fake.Int64Between(1, 1000000)
+			if val, ok := parsedArgs["min"]; ok {
+				min, _ = strconv.Atoi(val)
+			}
+			if val, ok := parsedArgs["max"]; ok {
+				max, _ = strconv.Atoi(val)
+			}
+			return fake.Int64Between(int64(min), int64(max))
 		},
 		"Float": func(args *string) interface{} {
-			// If no arguments are provided, return a random float between 0 and 100
+			min, max, precision := 0, 1000, 3
+
 			if args == nil {
-				return fake.Float64(3, 1, 1000)
+				return fake.Float64(precision, min, max)
 			}
-			//if the argument is passed then convert it to float
-			if val, err := strconv.Atoi(*args); err == nil {
-				return fake.Float64(3, 1, val)
+
+			parsedArgs, err := parseArguments(*args)
+			if err != nil {
+				return err.Error()
 			}
-			return fake.Float64(3, 1, 1000)
+
+			if val, ok := parsedArgs["min"]; ok {
+				min, _ = strconv.Atoi(val)
+			}
+			if val, ok := parsedArgs["max"]; ok {
+				max, _ = strconv.Atoi(val)
+			}
+			if val, ok := parsedArgs["precision"]; ok {
+				precision, _ = strconv.Atoi(val)
+			}
+			return fake.Float64(precision, min, max)
 		},
 		"Bool": func(args *string) interface{} {
+
+			if *args == "true" {
+				return true
+			}
+			if *args == "false" {
+				return false
+			}
+
 			return fake.BoolWithChance(50)
 		},
 		"Array": func(args *string) interface{} {
@@ -275,6 +320,8 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return result
 			}
 			pargs, err := parseArguments(*args)
+			fmt.Println("Parsed Arguments", pargs)
+			fmt.Println("Error", err)
 
 			if err != nil {
 				return err.Error()
@@ -526,6 +573,40 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 		},
 		"Uuid": func(args *string) interface{} {
 			return fake.UUID().V4()
+		},
+		"Test": func(args *string) interface{} {
+			fmt.Println("args", *args)
+			a, _ := parseArguments(*args)
+			fmt.Println("ParsedArguments", a)
+
+			return "Test"
+		},
+		"Ref": func(args *string) interface{} {
+			if args == nil || *args == "" {
+				return "reference not found"
+			}
+			if app.Ref == nil {
+				return "reference not defined"
+			}
+
+			ref := strings.Split(*args, ".")
+			// Iterate over the app.Ref map
+			for key, value := range *app.Ref {
+				// Check if the key exists in the ref slice
+				for _, item := range ref {
+					if key == item {
+						// Perform type assertion to ensure value is of type map[string]interface{}
+						if mapValue, ok := value.(map[string]interface{}); ok {
+							return ResponseBuilder(mapValue)
+						} else {
+							fmt.Println("Type assertion failed for key:", key)
+							return "Type assertion failed"
+						}
+					}
+				}
+			}
+			return "reference not found"
+
 		},
 	}
 

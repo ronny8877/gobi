@@ -456,7 +456,6 @@ The mock data is powered by [Faker](https://github.com/jaswdr/faker) and tries t
 | Color() | Returns mock color data such as color name, hex code, etc. |
 | DiceBearImage() | Returns a mock image URL from DiceBear. Accepts one parameter Collection to generate a image from that collection DiceBearImage(pixel-art) |
 | Message() | Returns a custom message. Accepts one parameter that will be returned as the message. `Message(Hello World)` ps any string that is not a defined function will be returned as it is. This method is just for the sake of uniformity you can just do `message: "any custom message"` |
-| Age() | Returns a random age between 10 and 100 |
 | Placehold() | Returns a placehol image URL. Accepts multiple parameters `Placehold(width=1024,height=768,text=CustomText,font=Roboto,color=ff0000,bgColor=000000)` all of them are optional  ` |
 | LoremPicsum() | Returns a Lorem Picsum Image URL. Accepts multiple parameters `LoremPicsum(width=400,height=300,blur=2,grayscale=true)` all of them are optional  ` |
 
@@ -563,7 +562,7 @@ Most of the methods above accepts one parameter that can be used to fine-tune th
           "boolean":"Bool()",
           "float":"Float()",
           "integer":"Int()",
-          "intSmall":"Int(20)",
+          "intSmall":"Int(min=1,max=100000)",
           "message":"Message(Any custom message you want)",
           "json":"Json()",
           "array":"Array()",

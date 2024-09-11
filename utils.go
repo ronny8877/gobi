@@ -8,15 +8,26 @@ import (
 )
 
 func parseValueBwBrackets(value string) (string, string, error) {
+	// Trim any leading or trailing whitespace from the input value
+	value = strings.TrimSpace(value)
+
+	// Split the value into parts using the first occurrence of '('
 	parts := strings.SplitN(value, "(", 2)
 	if len(parts) != 2 {
 		return "", "", fmt.Errorf("invalid format: %s", value)
 	}
-	name := parts[0]
-	args := strings.TrimRight(parts[1], ")")
+	// Trim any leading or trailing whitespace from the name part
+	name := strings.TrimSpace(parts[0])
+	// Trim any trailing whitespace and the closing ')' from the args part
+	var args string
+	if strings.HasSuffix(parts[1], ")") {
+		args = strings.TrimSpace(parts[1][:len(parts[1])-1])
+	} else {
+		args = strings.TrimSpace(parts[1])
+	}
+
 	return name, args, nil
 }
-
 func processMap(data map[string]interface{}, funcMap map[string]func(*string) interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
 	for key, value := range data {
@@ -24,6 +35,7 @@ func processMap(data map[string]interface{}, funcMap map[string]func(*string) in
 		case string:
 			//Getting the value In bw the brackets also removing the brackets
 			funcName, args, err := parseValueBwBrackets(v)
+
 			if err != nil {
 				// Keep the original value if parsing fails
 				result[key] = v
@@ -80,20 +92,55 @@ func formatAvatarURL(seed, avatarType string) string {
 }
 
 func parseArguments(args string) (map[string]string, error) {
-	//!NOTE the way this function parses is not considerate of nested values
-	//If we pass something like  Array(len=5,type=Array(len=5,type=Finance(creditCard)))
-	//It's not going to work. Although the fix will be easy But will require quite a bit of change
-	//Right now Response Builder calls a really simple parseValueBwBrackets function which breaks the value in two and remove brackets considering the second part as args
-	//LAter i should fix this function to handle nested values and replace the parseValueBwBrackets function
-	//As both function are Doing somewhat similar thing
 	result := make(map[string]string)
-	parts := strings.Split(args, ",")
-	for _, part := range parts {
-		keyValue := strings.Split(part, "=")
-		if len(keyValue) != 2 {
-			return nil, errors.New("invalid argument format: " + part)
+	stack := []string{}
+	currentKey := ""
+	currentValue := ""
+	inBrackets := false
+
+	for i := 0; i < len(args); i++ {
+		char := args[i]
+
+		switch char {
+		case '=':
+			if !inBrackets {
+				currentKey = strings.TrimSpace(currentValue)
+				currentValue = ""
+			} else {
+				currentValue += string(char)
+			}
+		case ',':
+			if !inBrackets {
+				result[currentKey] = strings.TrimSpace(currentValue)
+				currentKey = ""
+				currentValue = ""
+			} else {
+				currentValue += string(char)
+			}
+		case '(':
+			inBrackets = true
+			stack = append(stack, currentValue)
+			currentValue += string(char)
+		case ')':
+			currentValue += string(char)
+			if len(stack) > 0 {
+				stack = stack[:len(stack)-1]
+			}
+			if len(stack) == 0 {
+				inBrackets = false
+			}
+		default:
+			currentValue += string(char)
 		}
-		result[keyValue[0]] = keyValue[1]
 	}
+
+	if currentKey != "" {
+		result[currentKey] = strings.TrimSpace(currentValue)
+	}
+
+	if len(stack) > 0 {
+		return nil, errors.New("mismatched brackets in argument string")
+	}
+
 	return result, nil
 }
