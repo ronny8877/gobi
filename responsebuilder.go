@@ -11,7 +11,7 @@ import (
 )
 
 func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
-	response := make(map[string]interface{})
+	var response map[string]interface{}
 	//LOL FUNNY FIX
 	seed := time.Now().UnixNano()
 	source := rand.NewSource(seed + rand.Int63())
@@ -320,8 +320,6 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return result
 			}
 			pargs, err := parseArguments(*args)
-			fmt.Println("Parsed Arguments", pargs)
-			fmt.Println("Error", err)
 
 			if err != nil {
 				return err.Error()
