@@ -1,0 +1,12 @@
+---
+import { getCollection } from "astro:content"
+const collections = await getCollection('docs')
+---
+
+<div class="absolute left-0 bg-white flex gap-1 flex-col">
+   {collections.map((collection) => (
+      <a href={collection.slug} class="hover:bg-gray-200 rounded-xl px-5">
+         <span >{collection.slug}</span>
+      </a>
+   ))}
+</div>
