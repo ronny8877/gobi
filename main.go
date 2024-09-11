@@ -100,7 +100,7 @@ func loadConfig(app *App) error {
 	// Unmarshal the JSON into the new instance
 	err = json.Unmarshal(file, &newApp)
 	if err != nil {
-		return fmt.Errorf("error unmarshalling JSON: %w", err)
+		return fmt.Errorf("error parsing JSON")
 	}
 
 	// Copy the values from the new instance to the existing app instance

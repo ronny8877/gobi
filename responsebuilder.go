@@ -418,6 +418,16 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				return fake.Time().MonthName()
 			case *args == "timezone":
 				return fake.Time().Timezone()
+			case *args == "year":
+				return fake.Time().Year()
+			case *args == "now":
+				return time.Now().Format(time.RFC1123Z)
+			case *args == "month":
+				return fake.Time().Month()
+			case *args == "months":
+				return []string{"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"}
+			case *args == "days":
+				return []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
 			default:
 				return time.Now().Format(time.RFC1123Z)
 			}
@@ -571,13 +581,6 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 		},
 		"Uuid": func(args *string) interface{} {
 			return fake.UUID().V4()
-		},
-		"Test": func(args *string) interface{} {
-			fmt.Println("args", *args)
-			a, _ := parseArguments(*args)
-			fmt.Println("ParsedArguments", a)
-
-			return "Test"
 		},
 		"Ref": func(args *string) interface{} {
 			if args == nil || *args == "" {

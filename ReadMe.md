@@ -73,7 +73,7 @@ This will be the configuration for the server and is global a latency added here
 
 None the values above are required and can be omitted. you just need to pass an empty configkey in the json file.
 
-###### Endpoints
+#### Endpoints
 
 After The config you can add the endpoints you want to mock. The structure of the endpoint is as follows:
 
@@ -105,7 +105,7 @@ After The config you can add the endpoints you want to mock. The structure of th
   "name": "Tara Kuvalis"
 }
 ```
-##### Nested Response
+##### Nested Data
  
 ```json
 {
@@ -194,7 +194,7 @@ You can also add path params to the endpoint. The path params should be added in
 ```
 
 
-### Tuning Endpoints
+#### Endpoints Controls
 
 You can fine tune Each endpoint you want 
     
@@ -343,7 +343,7 @@ The server support Auth and you can provide the auth key in the config object. T
 - Bearer
 - Cookie 
 
-###### Right now the Auth do not offer much customization but if needed we will add more options in the future. Right now this was the most basic setup we could think of.
+<i> Right now the Auth do not offer much customization but if needed we will add more options in the future. Right now this was the most basic setup we could think of. </i>
 
 ``` json
 {
@@ -430,6 +430,78 @@ curl http://localhost:8080/me -H "Cookie : auth=1234567890; other=other"
 ```
 
 
+## Ref 
+A lot of endpoints can share similar Response Schema Or you might need an array of Custom data. You can easily solve this problem by using the Ref key. The Ref key will allow you to reference a response object from reference.
+
+This allows you to declare Most of the common Schema in one Place then just reference it where-ever needed.
+
+<i> Both `ref.ObjectName` and `ObjectName` are identified as a valid argument</i>
+
+``` json
+{
+  "config":{ },
+  "ref":{
+    "UserData":{
+      "email":"User(email)",
+      "username":"User(username)",
+      "password":"User(password)",
+      "uuid":"Uuid()",
+      "nesting":{
+        "testing":"Message(This is just to test)",
+      }
+    }
+  },
+  "api":[
+    {
+      "path":"/collections",
+      "method":"GET",
+      "response":{
+        "test":"Array(len=2,type=Ref(ref.UserData))",
+        "test2":"Ref(UserData)",
+      }
+    }
+   
+  ]
+}
+```
+#### Response
+
+```json 
+
+{
+  "test": [
+    {
+      "email": "mcdermott@lyx.net",
+      "nesting": {
+        "testing": "This is just to test"
+      },
+      "password": "lqxnmq",
+      "username": "vito.lowe",
+      "uuid": "539752a5-c99e-4187-8108-884184464fe7"
+    },
+    {
+      "email": "madonna.hettinger@lil.com",
+      "nesting": {
+        "testing": "This is just to test"
+      },
+      "password": "rqxkn|",
+      "username": "alanis.paucek",
+      "uuid": "9f5ce36b-962a-4399-bfee-7f50836c1efa"
+    }
+  ],
+  "test2": {
+    "email": "runolfsdottir.monica@yahoo.com",
+    "nesting": {
+      "testing": "This is just to test"
+    },
+    "password": "~sydshcjexbroh",
+    "username": "wunsch",
+    "uuid": "4ec20bb2-9381-438c-be8f-87ea43c73e8b"
+  }
+}
+```
+
+
 ## Mock Data Methods
 The mock data is powered by [Faker](https://github.com/jaswdr/faker) and tries to provide access to most of the methods provided by the library in a simple way.
 
@@ -438,19 +510,18 @@ The mock data is powered by [Faker](https://github.com/jaswdr/faker) and tries t
 | --- | --- |
 | User() | Used to mock user-related data such as email, name, phone, etc. |
 | Address() | Used to mock address-related data such as street, city, country, etc. |
-| Image() | Returns a mock image URL (Work In Progress) |
 | Finance() | Returns finance-related data such as crypto, banks, etc. |
 | Time() | Returns mock time data such as current time, date, etc. |
 | Vehicle() | Returns mock vehicle data such as make, model, year, etc. |
 | App() | Returns mock application-related data such as app name, version, etc. |
 | Language() | Returns mock language-related data such as language name, programming language, etc. |
-| Bool() | Returns a random boolean value (true or false) |
-| Float() | Returns a random float value |
-| Int() | Returns a random integer value |
+| Bool() | Returns a random boolean value (true or false) randomly, If you need one or Other You can do `Bool(true)` |
+| Float() | Returns a random float value, Accepts Two optional Parameters `min` `max` `Float(min=0,max=1)` will only return value bw 0 and 1 |
+| Int() | Returns a random integer value Can Accepts two args `min` `max` `Int(min=10,max=20)`  |
 | Json() | Returns mock JSON data |
 |Uuid() | Returns a random UUID |
-| Array() | Returns a mock array of data also accepts two inputs `len` for array of len and `type`  for the type of data to be returned ie `Array(len=2000, type=User())` |
-| Lorem() | Returns mock lorem ipsum text |
+| Array() | Returns a mock array of data also accepts two inputs `len` for array of len and `type`  for the type of data to be returned ie `Array(len=2000, type=User())` or `Array(len=2000, type=Ref(ref.UserData))`  |
+| Lorem() | Returns mock lorem ipsum text. Accepts two argument `len` for the length and `type` for the type Like `word` `sentence` `sentences` `paragraph` `paragraphs` Each returning more data than before.  |
 | Internet() | Returns mock internet-related data such as IP address, URL, etc. |
 | Company() | Returns mock company-related data such as company name, BS, etc. |
 | Color() | Returns mock color data such as color name, hex code, etc. |
@@ -459,200 +530,243 @@ The mock data is powered by [Faker](https://github.com/jaswdr/faker) and tries t
 | Placehold() | Returns a placehol image URL. Accepts multiple parameters `Placehold(width=1024,height=768,text=CustomText,font=Roboto,color=ff0000,bgColor=000000)` all of them are optional  ` |
 | LoremPicsum() | Returns a Lorem Picsum Image URL. Accepts multiple parameters `LoremPicsum(width=400,height=300,blur=2,grayscale=true)` all of them are optional  ` |
 
+<i> Note: If a function only accepts one parameter it can be unnamed But if It accepts More than 1 parameter they have to be nammed  ie `User(username)` as user only accepts one param. `Array(len=20)` as Array accepts two param this is done so It's easy to read and Understand the JSON Otherwise It would be `Int(20,40)` which is hard to understand in a glance instead `Int(min=20,max=40)` Is a bit more to type but easy to understand. and it was easy to code XD  </i>
+
 Most of the methods above accepts one parameter that can be used to fine-tune the data. For example, `User(name)` will return a random name and `User(mFirstName)` will return a male first name. 
 
 # A list of everything 
 ``` json 
-       "response":{
-        
-        "color":{ 
-          "color":"Color()",
-          "hex":"Color(hex)",
-          "rgb":"Color(rgb)",
-          "rgba":"Color(rgba)",
-          "safe" :"Color(safe)",
-          "css":"Color(css)"
+{
+  "config": {
+    "prefix": "/api",
+    "latency": 200,
+    "Port": 3000,
+    "logging": true,
+    "failRate": 0,
+    "timeout": 1000,
+    "auth": {
+      "apiKey": "1234567890",
+      "bearer": "1234567890",
+      "cookie": "auth=1234567890"
+    }
+  },
+  "ref": {
+    "reusableUser": {
+      "user": "User()",
+      "email": "User(email)",
+      "firstName": "User(firstName)",
+      "lastName": "User(lastName)"
+    }
+  },
+  "api": [
+    {
+      "path": "/all/data",
+      "latency": 200,
+      "method": "GET",
+      "failRate": 0,
+      "auth": {
+        "protected": true,
+        "protectedBy": "apiKey"
+      },
+      "response": {
+        "color": {
+          "color": "Color()",
+          "hex": "Color(hex)",
+          "rgb": "Color(rgb)",
+          "rgba": "Color(rgba)",
+          "safe": "Color(safe)",
+          "css": "Color(css)"
         },
-        "address" :{
-          "address":"Address()",
-          "city":"Address(city)",
-          "state":"Address(state)",
-          "country":"Address(country)",
-          "zip":"Address(zip)",
-          "latitude":"Address(latitude)",
-          "longitude":"Address(longitude)",
-          "secondary":"Address(full)",
-          "street":"Address(street)",
-          "country_code":"Address(countryCode)",
-          "state_code":"Address(stateAbbr)",
-          "countryAbbr":"Address(countryAbbr)"
+        "address": {
+          "address": "Address()",
+          "city": "Address(city)",
+          "state": "Address(state)",
+          "country": "Address(country)",
+          "zip": "Address(zip)",
+          "latitude": "Address(latitude)",
+          "longitude": "Address(longitude)",
+          "secondary": "Address(full)",
+          "street": "Address(street)",
+          "country_code": "Address(countryCode)",
+          "state_code": "Address(stateAbbr)",
+          "countryAbbr": "Address(countryAbbr)"
         },
-        "company":{
-          "company":"Company()",
-          "catch_phrase":"Company(catchPhrase)",
-          "bs":"Company(bs)",
-          "jobTitle":"Company(jobTitle)",
-          "ein":"Company(ein)",
-          "suffix":"Company(suffix)",
-          "mail":"Company(mail)"
+        "company": {
+          "company": "Company()",
+          "catch_phrase": "Company(catchPhrase)",
+          "bs": "Company(bs)",
+          "jobTitle": "Company(jobTitle)",
+          "ein": "Company(ein)",
+          "suffix": "Company(suffix)",
+          "mail": "Company(mail)"
         },
-        "internet":{
-          "url":"Internet()",
-          "domain":"Internet(domain)",
-          "ip":"Internet(ip)",
-          "ipv6":"Internet(ipv6)",
-          "mac":"Internet(mac)",
-          "httpMethod":"Internet(httpMethod)",
-          "tld":"Internet(tld)",
-          "slug":"Internet(slug)",
-          "status_code":"Internet(statusCode)",
-          "free_email":"Internet(freeEmail)",
-          "safe_email":"Internet(safeEmail)",
-          "status_code_message":"Internet(statusCodeMessage)",
-          "user_agent":"Internet(userAgent)",
-          "sha256":"Internet(sha256)",
-          "md5":"Internet(md5)",
-          "sha512":"Internet(sha512)",
-          "sqlId":"Internet(sqlId)"
+        "internet": {
+          "url": "Internet()",
+          "domain": "Internet(domain)",
+          "ip": "Internet(ip)",
+          "ipv6": "Internet(ipv6)",
+          "mac": "Internet(mac)",
+          "httpMethod": "Internet(httpMethod)",
+          "tld": "Internet(tld)",
+          "slug": "Internet(slug)",
+          "status_code": "Internet(statusCode)",
+          "free_email": "Internet(freeEmail)",
+          "safe_email": "Internet(safeEmail)",
+          "status_code_message": "Internet(statusCodeMessage)",
+          "user_agent": "Internet(userAgent)",
+          "sha256": "Internet(sha256)",
+          "md5": "Internet(md5)",
+          "sha512": "Internet(sha512)",
+          "sqlId": "Internet(sqlId)"
         },
-        "user":{
-          "user":"User()",
-          "email":"User(email)",
-          "firstName":"User(firstName)",
-          "lastName":"User(lastName)",
-          "female_firstName":"User(fFirstName)",
-          "female_title" :"User(fTitle)",
-          "maleFirstName":"User(mFirstName)",
-          "maleTitle":"User(mTitle)",
-          "phone":"User(phone)",
-          "userName":"User(userName)",
-          "password":"User(password)",
-          "title":"User(title)",
-          "gender":"User(gender)",
-          "ssn":"User(ssn)",
-          "bio":"User(bio)",
-          "birthday":"User(birthday)",
-          "age":"Age()",
-          "gamer_tag":"User(gamerTag)",
+        "user": {
+          "user": "User()",
+          "email": "User(email)",
+          "firstName": "User(firstName)",
+          "lastName": "User(lastName)",
+          "female_firstName": "User(fFirstName)",
+          "female_title": "User(fTitle)",
+          "maleFirstName": "User(mFirstName)",
+          "maleTitle": "User(mTitle)",
+          "phone": "User(phone)",
+          "userName": "User(userName)",
+          "password": "User(password)",
+          "title": "User(title)",
+          "gender": "User(gender)",
+          "ssn": "User(ssn)",
+          "bio": "User(bio)",
+          "birthday": "User(birthday)",
+          "age": "Int(min=20,max=100)",
+          "gamer_tag": "User(gamerTag)",
           "image": "User(image)",
-          "user_id":"Uuid()"
+          "user_id": "Uuid()"
         },
-        "finance":{
-          "amount":"Finance()",
-          "credit_card":"Finance(creditCard)",
-          "card_type":"Finance(cardType)",
-          "exp":"Finance(cardExpirationDate)",
-          "iban":"Finance(iban)",
-          "currency":"Finance(currency)",
-          "currencyCode":"Finance(currencyCode)",
-          "currencyAndCode":"Finance(currencyAndCode)",
-          "amountWithCurrency":"Finance(amountWithCurrency)",
-          "btcAddress":"Finance(btcAddress)",
-          "ethAddress":"Finance(ethAddress)"
+        "finance": {
+          "amount": "Finance()",
+          "credit_card": "Finance(creditCard)",
+          "card_type": "Finance(cardType)",
+          "exp": "Finance(cardExpirationDate)",
+          "iban": "Finance(iban)",
+          "currency": "Finance(currency)",
+          "currencyCode": "Finance(currencyCode)",
+          "currencyAndCode": "Finance(currencyAndCode)",
+          "amountWithCurrency": "Finance(amountWithCurrency)",
+          "btcAddress": "Finance(btcAddress)",
+          "ethAddress": "Finance(ethAddress)"
         },
-        "Lorem":{
-          "word":"Lorem(word)",
-          "words":"Lorem(words)",
-          "sentence":"Lorem(sentence)",
-          "paragraph":"Lorem(paragraph)",
-          "paragraphs":"Lorem(paragraphs)",
-          "Lorem":"Lorem()"
+        "Lorem": {
+          "word": "Lorem(type=word,len=1)",
+          "words": "Lorem(type=words,len=2)",
+          "sentence": "Lorem(type=sentence,len=2)",
+          "sentences": "Lorem(type=sentences,len=2)",
+          "paragraph": "Lorem(type=paragraph,len=2)",
+          "paragraphs": "Lorem(type=paragraphs,len=1)",
+
+          "Lorem": "Lorem()"
         },
-        "misc":{
-          "boolean":"Bool()",
-          "float":"Float()",
-          "integer":"Int()",
-          "intSmall":"Int(min=1,max=100000)",
-          "message":"Message(Any custom message you want)",
-          "json":"Json()",
-          "array":"Array()",
-          "array with len":"Array(len=20)",
-          "array with len and type":"Array(len=20,type=User(email))",
-          "uuid":"Uuid()"
+        "misc": {
+          "random bool": "Bool()",
+          "always true": "Bool(true)",
+          "random float": "Float()",
+          "float": "Float(min=0,max=1)",
+          "random integer": "Int()",
+          "int": "Int(min=20,max=100)",
+          "message": "Message(Any custom message you want)",
+          "json": "Json()",
+          "array": "Array()",
+          "array with len": "Array(len=20)",
+          "array with len and type": "Array(len=20,type=User(email))",
+          "uuid": "Uuid()",
+          "ref": "Ref(ref.reusableUser)",
+          "array with custom data": "Array(len=2,type=Ref(ref.reusableUser))"
         },
-        "language":{
-          "language":"Language()",
-          "languageabbr":"Language(abbr)",
-          "programming":"Language(programming)"
+        "language": {
+          "language": "Language()",
+          "languageabbr": "Language(abbr)",
+          "programming": "Language(programming)"
         },
-        "app":{
-          "appName":"App()",
-          "appVersion":"App(version)",
-          "platform":"App(platform)"
+        "app": {
+          "appName": "App()",
+          "appVersion": "App(version)",
+          "platform": "App(platform)"
         },
-        "vehicle":{
-          "vehicle":"Vehicle()",
-          "vehicleBrand":"Vehicle(brand)",
-          "vehicleType":"Vehicle(type)",
-          "vehicleTransmission":"Vehicle(transmission)",
-          "vehiclePlate":"Vehicle(plate)"
-          },
-        "Time":{
-          "time":"Time()",
-          "unix":"Time(unix)",
-          "unixNano":"Time(unixNano)",
-          "iso":"Time(iso)",
-          "day":"Time(day)",
-          "ansi":"Time(ansi)",
-          "monthName":"Time(monthName)",
-          "timezone":"Time(timezone)"
+        "vehicle": {
+          "vehicle": "Vehicle()",
+          "vehicleBrand": "Vehicle(brand)",
+          "vehicleType": "Vehicle(type)",
+          "vehicleTransmission": "Vehicle(transmission)",
+          "vehiclePlate": "Vehicle(plate)"
         },
-          "DiceBearImage": {
-            "adventurerNeutral": "DiceBearImage(adventurer-neutral)",
-            "avataaars": "DiceBearImage(avataaars)",
-            "avataaarsNeutral": "DiceBearImage(avataaars-neutral)",
-            "bigEars": "DiceBearImage(big-ears)",
-            "bigEarsNeutral": "DiceBearImage(big-ears-neutral)",
-            "bigSmile": "DiceBearImage(big-smile)",
-            "bottts": "DiceBearImage(bottts)",
-            "botttsNeutral": "DiceBearImage(bottts-neutral)",
-            "croodles": "DiceBearImage(croodles)",
-            "croodlesNeutral": "DiceBearImage(croodles-neutral)",
-            "dylan": "DiceBearImage(dylan)",
-            "funEmoji": "DiceBearImage(fun-emoji)",
-            "identicon": "DiceBearImage(identicon)",
-            "initials": "DiceBearImage(initials)",
-            "glass": "DiceBearImage(glass)",
-            "lorelei": "DiceBearImage(lorelei)",
-            "loreleiNeutral": "DiceBearImage(lorelei-neutral)",
-            "micah": "DiceBearImage(micah)",
-            "miniavs": "DiceBearImage(miniavs)",
-            "notionists": "DiceBearImage(notionists)",
-            "notionistsNeutral": "DiceBearImage(notionists-neutral)",
-            "openPeeps": "DiceBearImage(open-peeps)",
-            "personas": "DiceBearImage(personas)",
-            "pixelArt": "DiceBearImage(pixel-art)",
-            "pixelArtNeutral": "DiceBearImage(pixel-art-neutral)",
-            "rings": "DiceBearImage(rings)",
-            "shapes": "DiceBearImage(shapes)",
-            "thumbs": "DiceBearImage(thumbs)"
-          },
-          "Placehold": {
-            "default": "Placehold()",
-            "customWidth": "Placehold(width=1024)",
-            "customHeight": "Placehold(height=768)",
-            "customText": "Placehold(text=CustomText)",
-            "customFont": "Placehold(font=Roboto)",
-            "customColor": "Placehold(color=ff0000)",
-            "customBgColor": "Placehold(bgColor=000000)",
-            "customWidthHeight": "Placehold(width=1024,height=768)",
-            "customWidthText": "Placehold(width=1024,text=CustomText)",
-            "customWidthFont": "Placehold(width=1024,font=Roboto)",
-            "customWidthColor": "Placehold(width=1024,color=ff0000)",
-            "customWidthBgColor": "Placehold(width=1024,bgColor=000000)",
-            "customHeightText": "Placehold(height=768,text=CustomText)",
-            "customHeightFont": "Placehold(height=768,font=Roboto)",
-            "customHeightColor": "Placehold(height=768,color=ff0000)",
-            "customHeightBgColor": "Placehold(height=768,bgColor=000000)",
-            "customTextFont": "Placehold(text=CustomText,font=Roboto)",
-            "customTextColor": "Placehold(text=CustomText,color=ff0000)",
-            "customTextBgColor": "Placehold(text=CustomText,bgColor=000000)",
-            "customFontColor": "Placehold(font=Roboto,color=ff0000)",
-            "customFontBgColor": "Placehold(font=Roboto,bgColor=000000)",
-            "customColorBgColor": "Placehold(color=ff0000,bgColor=000000)",
-            "allCustom": "Placehold(width=1024,height=768,text=CustomText,font=Roboto,color=ff0000,bgColor=000000)"
-          },
-      "LoremPicsum": {
+        "Time": {
+          "time": "Time()",
+          "unix": "Time(unix)",
+          "unixNano": "Time(unixNano)",
+          "iso": "Time(iso)",
+          "day": "Time(day)",
+          "ansi": "Time(ansi)",
+          "monthName": "Time(monthName)",
+          "timezone": "Time(timezone)",
+          "year": "Time(year)",
+          "month": "Time(month)",
+          "months": "Time(months)",
+          "days": "Time(days)"
+        },
+        "DiceBearImage": {
+          "adventurerNeutral": "DiceBearImage(adventurer-neutral)",
+          "avataaars": "DiceBearImage(avataaars)",
+          "avataaarsNeutral": "DiceBearImage(avataaars-neutral)",
+          "bigEars": "DiceBearImage(big-ears)",
+          "bigEarsNeutral": "DiceBearImage(big-ears-neutral)",
+          "bigSmile": "DiceBearImage(big-smile)",
+          "bottts": "DiceBearImage(bottts)",
+          "botttsNeutral": "DiceBearImage(bottts-neutral)",
+          "croodles": "DiceBearImage(croodles)",
+          "croodlesNeutral": "DiceBearImage(croodles-neutral)",
+          "dylan": "DiceBearImage(dylan)",
+          "funEmoji": "DiceBearImage(fun-emoji)",
+          "identicon": "DiceBearImage(identicon)",
+          "initials": "DiceBearImage(initials)",
+          "glass": "DiceBearImage(glass)",
+          "lorelei": "DiceBearImage(lorelei)",
+          "loreleiNeutral": "DiceBearImage(lorelei-neutral)",
+          "micah": "DiceBearImage(micah)",
+          "miniavs": "DiceBearImage(miniavs)",
+          "notionists": "DiceBearImage(notionists)",
+          "notionistsNeutral": "DiceBearImage(notionists-neutral)",
+          "openPeeps": "DiceBearImage(open-peeps)",
+          "personas": "DiceBearImage(personas)",
+          "pixelArt": "DiceBearImage(pixel-art)",
+          "pixelArtNeutral": "DiceBearImage(pixel-art-neutral)",
+          "rings": "DiceBearImage(rings)",
+          "shapes": "DiceBearImage(shapes)",
+          "thumbs": "DiceBearImage(thumbs)"
+        },
+        "Placehold": {
+          "default": "Placehold()",
+          "customWidth": "Placehold(width=1024)",
+          "customHeight": "Placehold(height=768)",
+          "customText": "Placehold(text=CustomText)",
+          "customFont": "Placehold(font=Roboto)",
+          "customColor": "Placehold(color=ff0000)",
+          "customBgColor": "Placehold(bgColor=000000)",
+          "customWidthHeight": "Placehold(width=1024,height=768)",
+          "customWidthText": "Placehold(width=1024,text=CustomText)",
+          "customWidthFont": "Placehold(width=1024,font=Roboto)",
+          "customWidthColor": "Placehold(width=1024,color=ff0000)",
+          "customWidthBgColor": "Placehold(width=1024,bgColor=000000)",
+          "customHeightText": "Placehold(height=768,text=CustomText)",
+          "customHeightFont": "Placehold(height=768,font=Roboto)",
+          "customHeightColor": "Placehold(height=768,color=ff0000)",
+          "customHeightBgColor": "Placehold(height=768,bgColor=000000)",
+          "customTextFont": "Placehold(text=CustomText,font=Roboto)",
+          "customTextColor": "Placehold(text=CustomText,color=ff0000)",
+          "customTextBgColor": "Placehold(text=CustomText,bgColor=000000)",
+          "customFontColor": "Placehold(font=Roboto,color=ff0000)",
+          "customFontBgColor": "Placehold(font=Roboto,bgColor=000000)",
+          "customColorBgColor": "Placehold(color=ff0000,bgColor=000000)",
+          "allCustom": "Placehold(width=1024,height=768,text=CustomText,font=Roboto,color=ff0000,bgColor=000000)"
+        },
+        "LoremPicsum": {
           "default": "LoremPicsum()",
           "customWidth": "LoremPicsum(width=400)",
           "customHeight": "LoremPicsum(height=300)",
@@ -669,67 +783,81 @@ Most of the methods above accepts one parameter that can be used to fine-tune th
           "customWidthBlurGrayscale": "LoremPicsum(width=400,blur=2,grayscale=true)",
           "customHeightBlurGrayscale": "LoremPicsum(height=300,blur=2,grayscale=true)",
           "allCustom": "LoremPicsum(width=400,height=300,blur=2,grayscale=true)"
+        }
       }
- }
+    }
+  ]
+}
+
+
 ```
 
 Response
 ``` json 
 {
   "DiceBearImage": {
-    "adventurerNeutral": "https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=Ali Ratke",
-    "avataaars": "https://api.dicebear.com/9.x/avataaars/svg?seed=Madison Bernier",
-    "avataaarsNeutral": "https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=Ardella Abshire DDS",
-    "bigEars": "https://api.dicebear.com/9.x/big-ears/svg?seed=Savannah Hoeger Jr.",
-    "bigEarsNeutral": "https://api.dicebear.com/9.x/big-ears-neutral/svg?seed=Bertram Koss",
-    "bigSmile": "https://api.dicebear.com/9.x/big-smile/svg?seed=Ms. Dannie Smith",
-    "bottts": "https://api.dicebear.com/9.x/bottts/svg?seed=Amparo Dach",
-    "botttsNeutral": "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Jade Jacobi I",
-    "croodles": "https://api.dicebear.com/9.x/croodles/svg?seed=Mr. Darien Boehm Sr.",
-    "croodlesNeutral": "https://api.dicebear.com/9.x/croodles-neutral/svg?seed=Trey Stokes",
-    "dylan": "https://api.dicebear.com/9.x/dylan/svg?seed=Mr. Chelsey Beer",
-    "funEmoji": "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Mr. Gideon Ortiz Jr.",
-    "glass": "https://api.dicebear.com/9.x/glass/svg?seed=William Mante",
-    "identicon": "https://api.dicebear.com/9.x/identicon/svg?seed=Ernestine Orn",
-    "initials": "https://api.dicebear.com/9.x/initials/svg?seed=Ms. Domenica Mitchell II",
-    "lorelei": "https://api.dicebear.com/9.x/lorelei/svg?seed=Nico Gutmann Jr.",
-    "loreleiNeutral": "https://api.dicebear.com/9.x/lorelei-neutral/svg?seed=Armando Brown",
-    "micah": "https://api.dicebear.com/9.x/micah/svg?seed=Mr. Ethel Jast MD",
-    "miniavs": "https://api.dicebear.com/9.x/miniavs/svg?seed=Mr. Bobby Schiller",
-    "notionists": "https://api.dicebear.com/9.x/notionists/svg?seed=Ms. Marion Cormier",
-    "notionistsNeutral": "https://api.dicebear.com/9.x/notionists-neutral/svg?seed=Sarina Johnston IV",
-    "openPeeps": "https://api.dicebear.com/9.x/open-peeps/svg?seed=Letitia Klocko",
-    "personas": "https://api.dicebear.com/9.x/personas/svg?seed=Garrick Olson",
-    "pixelArt": "https://api.dicebear.com/9.x/pixel-art/svg?seed=Enid Kulas",
-    "pixelArtNeutral": "https://api.dicebear.com/9.x/pixel-art-neutral/svg?seed=Mr. Tony Glover I",
-    "rings": "https://api.dicebear.com/9.x/rings/svg?seed=Mr. Jamie Ernser PhD",
-    "shapes": "https://api.dicebear.com/9.x/shapes/svg?seed=Emile O'Conner",
-    "thumbs": "https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=Noel Grant III"
+    "adventurerNeutral": "https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=Jameson Wisoky",
+    "avataaars": "https://api.dicebear.com/9.x/avataaars/svg?seed=Ollie Pfannerstill",
+    "avataaarsNeutral": "https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=Ms. Violette Gislason",
+    "bigEars": "https://api.dicebear.com/9.x/big-ears/svg?seed=Art Moore",
+    "bigEarsNeutral": "https://api.dicebear.com/9.x/big-ears-neutral/svg?seed=Ms. Kayli Adams DDS",
+    "bigSmile": "https://api.dicebear.com/9.x/big-smile/svg?seed=Eleazar Bartoletti",
+    "bottts": "https://api.dicebear.com/9.x/bottts/svg?seed=Ms. Sister Murray",
+    "botttsNeutral": "https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Jerrold Fritsch",
+    "croodles": "https://api.dicebear.com/9.x/croodles/svg?seed=Mr. Moises Schmeler DDS",
+    "croodlesNeutral": "https://api.dicebear.com/9.x/croodles-neutral/svg?seed=Obie Mosciski",
+    "dylan": "https://api.dicebear.com/9.x/dylan/svg?seed=Alford Baumbach",
+    "funEmoji": "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Ms. Pasquale Collier",
+    "glass": "https://api.dicebear.com/9.x/glass/svg?seed=Ms. Grace Frami IV",
+    "identicon": "https://api.dicebear.com/9.x/identicon/svg?seed=Edd Heathcote",
+    "initials": "https://api.dicebear.com/9.x/initials/svg?seed=Aron Haley I",
+    "lorelei": "https://api.dicebear.com/9.x/lorelei/svg?seed=Angelica Funk",
+    "loreleiNeutral": "https://api.dicebear.com/9.x/lorelei-neutral/svg?seed=Ms. Aylin Wisozk PhD",
+    "micah": "https://api.dicebear.com/9.x/micah/svg?seed=Skylar Sauer",
+    "miniavs": "https://api.dicebear.com/9.x/miniavs/svg?seed=Ms. Assunta Braun I",
+    "notionists": "https://api.dicebear.com/9.x/notionists/svg?seed=Dario Cassin",
+    "notionistsNeutral": "https://api.dicebear.com/9.x/notionists-neutral/svg?seed=Yasmine Grimes",
+    "openPeeps": "https://api.dicebear.com/9.x/open-peeps/svg?seed=Antonina Boyer",
+    "personas": "https://api.dicebear.com/9.x/personas/svg?seed=Annamae Murphy",
+    "pixelArt": "https://api.dicebear.com/9.x/pixel-art/svg?seed=Nikki Kunde",
+    "pixelArtNeutral": "https://api.dicebear.com/9.x/pixel-art-neutral/svg?seed=Elfrieda Howell",
+    "rings": "https://api.dicebear.com/9.x/rings/svg?seed=Ms. Lilla Mills DVM",
+    "shapes": "https://api.dicebear.com/9.x/shapes/svg?seed=Margarita Volkman",
+    "thumbs": "https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=Ms. Felipa Jacobi"
   },
   "Lorem": {
-    "Lorem": "et distinctio nihil qui ullam quo quae in excepturi perferendis modi neque veniam sunt cum sint odio fuga nobis libero.",
-    "paragraph": "vero beatae minus omnis quos explicabo est quod consequatur illum totam nostrum et dolores qui ipsum libero minus enim incidunt qui dolor odit perferendis et laborum dolor architecto sunt dignissimos voluptatem ipsum reiciendis quis possimus ut in nostrum iste nemo beatae consequuntur et totam est vitae a cum veritatis sit voluptas veniam nobis perferendis mollitia adipisci laudantium et itaque quia magnam necessitatibus aperiam molestias nobis sit doloribus et sint accusantium quo asperiores inventore dolorum optio nostrum ut non velit laborum accusamus dolorem sit nihil nisi qui rem.",
-    "paragraphs": ["Two very long paragharphs that My IDE suffrs so removed them","Can easily be the size of a blog"],
-    "sentence": "tempora assumenda quisquam quo dolores error sapiente fugiat aliquid sapiente vel vero illo illo natus neque non perferendis aut maiores.",
-    "word": "vitae",
-    "words": "quisquam non iusto quia quia praesentium rerum quia deserunt culpa totam unde recusandae nostrum atque rerum molestias quia itaque et."
+    "Lorem": "et.",
+    "paragraph": "sed ut voluptatibus perferendis aliquam maxime nulla voluptas ipsum autem enim adipisci dicta delectus cumque animi eius eum sit cumque reiciendis a quo esse delectus harum dolor quis vel et ullam est a neque omnis praesentium iusto aut numquam dignissimos aut autem quasi minus assumenda aut cum illo nisi nostrum sit autem neque. ut deleniti ex doloribus ullam est et molestiae eos quasi quia provident rerum dignissimos est qui natus quisquam illo ut vero est voluptas sequi eos consequatur velit non dolorem sunt et natus dolor esse rerum et accusamus quis dolor ab distinctio ut expedita quia nostrum rerum fuga aspernatur placeat adipisci in illum et eos et odio nisi.",
+    "paragraphs": [
+      "Over 500 words here removed them for the sake of readability",
+    ],
+    "sentence": "labore maiores.",
+    "sentences": [
+      "earum quam deserunt saepe quod dolorum aperiam vel nihil voluptas et velit occaecati ut qui ipsa dolorem omnis consequuntur mollitia nobis totam recusandae animi qui quam autem temporibus distinctio minima id non eos eos mollitia ut eum dolorem aut nobis sit voluptatem quam qui animi temporibus corrupti quos cupiditate qui voluptatem rerum qui assumenda labore consequuntur temporibus sint ducimus ut enim eos ex aut perspiciatis nobis inventore laboriosam dolor expedita sit facilis vel totam omnis minus sit itaque necessitatibus.",
+      "molestiae dolore nemo recusandae accusantium suscipit qui dolor ea suscipit saepe accusamus est ut perspiciatis deleniti itaque dolor vitae voluptatem perspiciatis necessitatibus sed distinctio voluptatem pariatur dolores et vel culpa praesentium expedita saepe quia doloribus fuga aspernatur autem sed amet illo quasi voluptas aut fugiat possimus soluta fugit dolorem qui et quibusdam consequatur temporibus sed soluta alias nam non."
+    ],
+    "word": "necessitatibus",
+    "words": [
+      "aut",
+      "iure"
+    ]
   },
   "LoremPicsum": {
-    "allCustom": "https://picsum.photos/400/300?blur=2&grayscale&id=883",
-    "customBlur": "https://picsum.photos/200/200?blur=2&id=272",
-    "customBlurGrayscale": "https://picsum.photos/200/200?blur=2&grayscale&id=410",
-    "customGrayscale": "https://picsum.photos/200/200?blur=1&grayscale&id=634",
-    "customHeight": "https://picsum.photos/200/300?blur=1&id=141",
-    "customHeightBlur": "https://picsum.photos/200/300?blur=2&id=601",
-    "customHeightBlurGrayscale": "https://picsum.photos/200/300?blur=2&grayscale&id=941",
-    "customHeightGrayscale": "https://picsum.photos/200/300?blur=1&grayscale&id=814",
-    "customWidth": "https://picsum.photos/400/200?blur=1&id=878",
-    "customWidthBlur": "https://picsum.photos/400/200?blur=2&id=774",
-    "customWidthBlurGrayscale": "https://picsum.photos/400/200?blur=2&grayscale&id=873",
-    "customWidthGrayscale": "https://picsum.photos/400/200?blur=1&grayscale&id=655",
-    "customWidthHeight": "https://picsum.photos/400/300?blur=1&id=794",
-    "customWidthHeightBlur": "https://picsum.photos/400/300?blur=2&id=197",
-    "customWidthHeightGrayscale": "https://picsum.photos/400/300?blur=1&grayscale&id=229",
+    "allCustom": "https://picsum.photos/400/300?blur=2&grayscale&id=186",
+    "customBlur": "https://picsum.photos/200/200?blur=2&id=910",
+    "customBlurGrayscale": "https://picsum.photos/200/200?blur=2&grayscale&id=718",
+    "customGrayscale": "https://picsum.photos/200/200?blur=1&grayscale&id=37",
+    "customHeight": "https://picsum.photos/200/300?blur=1&id=404",
+    "customHeightBlur": "https://picsum.photos/200/300?blur=2&id=545",
+    "customHeightBlurGrayscale": "https://picsum.photos/200/300?blur=2&grayscale&id=201",
+    "customHeightGrayscale": "https://picsum.photos/200/300?blur=1&grayscale&id=712",
+    "customWidth": "https://picsum.photos/400/200?blur=1&id=206",
+    "customWidthBlur": "https://picsum.photos/400/200?blur=2&id=99",
+    "customWidthBlurGrayscale": "https://picsum.photos/400/200?blur=2&grayscale&id=205",
+    "customWidthGrayscale": "https://picsum.photos/400/200?blur=1&grayscale&id=0",
+    "customWidthHeight": "https://picsum.photos/400/300?blur=1&id=353",
+    "customWidthHeightBlur": "https://picsum.photos/400/300?blur=2&id=65",
+    "customWidthHeightGrayscale": "https://picsum.photos/400/300?blur=1&grayscale&id=526",
     "default": "https://picsum.photos/200/300"
   },
   "Placehold": {
@@ -758,210 +886,233 @@ Response
     "default": "https://placehold.co/600x400"
   },
   "Time": {
-    "ansi": "Tue Nov 28 19:31:27 1989",
-    "day": 6,
-    "iso": "1991-03-25T13:16:00+000",
-    "monthName": "March",
-    "time": "Tue, 10 Sep 2024 21:58:53 +0530",
-    "timezone": "America/Santarem",
-    "unix": 1725985733,
-    "unixNano": 1725985733036314000
+    "ansi": "Sun Nov  1 02:53:49 1981",
+    "day": 3,
+    "days": [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ],
+    "iso": "1980-11-12T21:45:51+000",
+    "month": 5,
+    "monthName": "January",
+    "months": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
+    "time": "Thu, 12 Sep 2024 02:49:01 +0530",
+    "timezone": "America/Yakutat",
+    "unix": 1726089541,
+    "unixNano": 1726089541416112000,
+    "year": 1992
   },
   "address": {
-    "address": "%969 Christ Vista Apt. 669\nEast Rozella, PA 04700-0536",
-    "city": "South Laurence",
-    "country": "Belize",
-    "countryAbbr": "FIN",
-    "country_code": "JM",
-    "latitude": 62.211554,
-    "longitude": 73.703326,
-    "secondary": "%115 Vandervort Expressway\nBlandaland, MI 77383-4643",
-    "state": "New York",
-    "state_code": "LA",
-    "street": "Rosalee Mews",
-    "zip": "20659"
+    "address": "%1437 Angelica Highway\nNorth Marguerite, VT 89836",
+    "city": "East Jeffry",
+    "country": "Bahrain",
+    "countryAbbr": "RUS",
+    "country_code": "IQ",
+    "latitude": 22.037837,
+    "longitude": 13.150227,
+    "secondary": "%91 Major Flats Apt. 416\nHomenickhaven, LA 67248-4736",
+    "state": "Florida",
+    "state_code": "VA",
+    "street": "Schaefer Cape",
+    "zip": "81810-4769"
   },
   "app": {
-    "appName": "WebDesk",
-    "appVersion": "v7.0.6",
-    "platform": "Android"
+    "appName": "Essential Web",
+    "appVersion": "v5.3.0",
+    "platform": "Windows"
   },
   "color": {
-    "color": "LightSeaGreen",
-    "css": "rgb(45,207,248)",
-    "hex": "#1B20F2",
-    "rgb": "54,86,19",
+    "color": "GreenYellow",
+    "css": "rgb(156,82,158)",
+    "hex": "#0BA0BB",
+    "rgb": "186,216,107",
     "rgba": [
-      "207",
-      "35",
-      "11"
+      "143",
+      "39",
+      "2"
     ],
-    "safe": "maroon"
+    "safe": "teal"
   },
   "company": {
-    "bs": "empower viral users",
-    "catch_phrase": "Persevering local success",
-    "company": "Kuhn and Sons",
-    "ein": 95,
-    "jobTitle": "Project Manager",
-    "mail": "ruth.douglas@nicolas_inc.ipz.com",
-    "suffix": "and Sons"
+    "bs": "incentivize mission-critical portals",
+    "catch_phrase": "Open-architected upward-trending opensystem",
+    "company": "Schinner Ltd",
+    "ein": 12,
+    "jobTitle": "Immigration Inspector OR Customs Inspector",
+    "mail": "denesik.christina@mann-mann.tfy.com",
+    "suffix": "Inc"
   },
   "finance": {
-    "amount": 1428960,
-    "amountWithCurrency": "23849 USD",
-    "btcAddress": "36Rd57WDuV75u3qJt4yvpx4QxkWC",
-    "card_type": "Discover Card",
-    "credit_card": "4119788493747977",
-    "currency": "Jamaican Dollar",
-    "currencyAndCode": "Sri Lanka Rupee (LKR)",
-    "currencyCode": "XDR",
-    "ethAddress": "0xF4VJM7zm29nxYvspy69oAy8Hp2hl8F2dQBp58c7q",
-    "exp": "15/16",
-    "iban": "CZ8989836920895392395333"
+    "amount": 5412186,
+    "amountWithCurrency": "63071 PKR",
+    "btcAddress": "bc15dqZEG5k8sE85N7A2pZQTq1",
+    "card_type": "Visa",
+    "credit_card": "0674127062363508",
+    "currency": "Euro",
+    "currencyAndCode": "US Dollar (USD)",
+    "currencyCode": "EUR",
+    "ethAddress": "0xw0MDQGLYJU1c2AySbm4YC4sETwl5ZWz4gq7033jL",
+    "exp": "00/17",
+    "iban": "CR24764567723760078084"
   },
   "internet": {
-    "domain": "yrm.com",
-    "free_email": "charlotte.nolan@yahoo.com",
-    "httpMethod": "TRACE",
-    "ip": "5.239.104.19",
-    "ipv6": "3446:1151:8277:5363:6356:2883:3238:6773",
-    "mac": "0D:D4:8B:AF:A5:2B",
-    "md5": "92c9713a49820b2c97fbd10165872df4",
-    "safe_email": "jarret.halvorson@example.org",
-    "sha256": "863a6b632034d24c2d404f944dde121158683787b89cd065fd00d5fa76f68853",
-    "sha512": "f0bcfd81abefcdf9ae5e5de58d1a868317503ea76422309bc212d1ef25a1e67789d0bfa752a7e2abd4510f4f3e4f60cdaf6202a42883fb97bb7110ab3600785e",
-    "slug": "bj-mugya",
-    "sqlId": 74042,
-    "status_code": 508,
-    "status_code_message": "Continue",
+    "domain": "zyj.biz",
+    "free_email": "sydney@hotmail.com",
+    "httpMethod": "DELETE",
+    "ip": "151.152.176.105",
+    "ipv6": "7348:3336:3327:5732:5847:2617:8443:4145",
+    "mac": "4C:D3:F8:75:D0:12",
+    "md5": "a81ba73d43118ec091f856197a2d0e8d",
+    "safe_email": "haley@example.org",
+    "sha256": "f22e89c251e50eec7c9e184f5584b99fdf48fdbde7317acd6388ce05ea691a43",
+    "sha512": "708a0ac37986b927ab8de7c99044f5e06f0751765b974f2fc6b4ce896c6ee06a526e03d44304e0f8c2bfd53caedf856b1596edee3d55495f799d988b153a4bfa",
+    "slug": "ney-nnnh",
+    "sqlId": 96563,
+    "status_code": 413,
+    "status_code_message": "Locked (WebDAV)",
     "tld": "com",
-    "url": "https://www.wfc.info/zpgi-hdiz",
-    "user_agent": "Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1"
+    "url": "https://www.oyl.org/wmag-upyw",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/117.0"
   },
   "language": {
-    "language": "Romanian",
-    "languageabbr": "zu",
-    "programming": "Java"
+    "language": "Magahi",
+    "languageabbr": "hi",
+    "programming": "Ruby on Rails"
   },
   "misc": {
+    "always true": true,
     "array": [
-      "minus",
-      "hic",
-      "nulla",
-      "accusamus",
-      "vitae"
+      "tenetur",
+      "magni",
+      "omnis",
+      "quis",
+      "nihil"
+    ],
+    "array with custom data": [
+      {
+        "email": "janae@yahoo.com",
+        "firstName": "Reginald",
+        "lastName": "Toy",
+        "user": "Ashton Turner DVM"
+      },
+      {
+        "email": "kamron@yahoo.com",
+        "firstName": "Timmothy",
+        "lastName": "Berge",
+        "user": "Francisca Paucek DDS"
+      }
     ],
     "array with len": [
-      "Lurline Steuber Jr.",
-      "Mr. Leopoldo Waelchi Jr.",
-      "Ms. Karelle Abernathy II",
-      "Imogene Windler",
-      "Wendell Rolfson",
-      "Corine Doyle",
-      "Ms. Leonor Gutkowski",
-      "Manuela Hickle",
-      "Isac Strosin",
-      "Mr. Rylan Senger MD",
-      "Junius McGlynn",
-      "Ms. Destiny Gislason I",
-      "Marcel Conn",
-      "Hunter Brekke",
-      "Ms. Tess Considine III",
-      "Samir Schinner",
-      "Marge Koss",
-      "Gilberto Howell",
-      "Ms. Viola Sporer",
-      "Sydni Wehner"
+      "Allan Stark",
+      "Mariela Hayes",
+      "Liana Rodriguez",
+      "Colt Little",
+      "Eda Barton",
+      "Mr. Edwin Beier PhD",
+      "Brenden Klein PhD",
+      "Mr. Edgar Ondricka DDS",
+      "Adella Flatley",
+      "Ms. Luz Donnelly III",
+      "Mr. Kale Effertz",
+      "Jerrod Lueilwitz",
+      "Yadira VonRueden",
+      "Nikita Predovic MD",
+      "Ms. Greta Morissette",
+      "Cedrick Gorczany",
+      "Jorge Schaefer",
+      "Edd Erdman III",
+      "Mr. Jaeden Kuphal",
+      "Jamison Lockman"
     ],
     "array with len and type": [
-      "hayes.nasir@yahoo.com",
-      "trantow.adrianna@gmail.com",
-      "dorcas.bergstrom@ukg.org",
-      "fritsch.jayde@yahoo.com",
-      "stoltenberg.margarett@mao.biz",
-      "joey.kuvalis@xyh.info",
-      "champlin@hotmail.com",
-      "cronin@izg.com",
-      "ritchie@gmail.com",
-      "botsford.marcelo@hotmail.com",
-      "ida@yahoo.com",
-      "oda.pagac@yahoo.com",
-      "borer.al@gmail.com",
-      "elyssa@bec.com",
-      "bergstrom@gmail.com",
-      "davin.leuschke@hotmail.com",
-      "smith.mohammad@wiv.net",
-      "collier.perry@shu.com",
-      "broderick.jakubowski@qek.net",
-      "huels.magali@yej.biz"
+      "hildegard.parisian@hotmail.com",
+      "tatyana@fiv.org",
+      "mayer.caden@hah.com",
+      "danial@amo.org",
+      "ryan@yahoo.com",
+      "enos@ymz.org",
+      "joe.hickle@gmail.com",
+      "darron@yahoo.com",
+      "o_keefe@yahoo.com",
+      "pacocha@gmail.com",
+      "jonas@hotmail.com",
+      "candice@hotmail.com",
+      "laury@egy.info",
+      "ondricka@gmail.com",
+      "jessie@cdz.biz",
+      "lilla@gmail.com",
+      "joshuah@yahoo.com",
+      "grimes@yahoo.com",
+      "kozey@gmail.com",
+      "lia.parker@hotmail.com"
     ],
-    "boolean": true,
-    "float": 483.20001220703125,
-    "intSmall": 3,
-    "integer": 200,
+    "float": 0.10000000149011612,
+    "int": 91,
     "json": {
-      "enim": [
-        "incidunt",
-        "quis",
-        "voluptatem",
-        "fugit"
-      ],
-      "facere": [
-        "quam",
-        "asperiores",
-        "et"
-      ],
-      "iusto": [
-        "harum",
-        "minima",
-        "repudiandae",
-        "sequi",
-        "atque",
-        "quibusdam"
-      ],
-      "nihil": 844023.1875,
-      "qui": [
-        "distinctio",
-        "deleniti",
-        "quia",
-        "ut",
-        "dolorem",
-        "sit"
-      ],
-      "sapiente": 714779.1875
+      "illum": "%33 Gladyce Lodge Suite 048\nLake Nestor, WI 25169",
+      "iste": "%39 Kozey Views Suite 396\nWest Jazminbury, NM 68509-8371",
+      "quod": {
+        "aut": 6799611
+      },
+      "sunt": 9186739
     },
     "message": "Any custom message you want",
-    "uuid": "22168e9a-891b-40ff-8d14-d16c92481d4e"
+    "random bool": false,
+    "random float": 141.1999969482422,
+    "random integer": 73,
+    "ref": {
+      "email": "considine.bulah@wia.com",
+      "firstName": "Geovany",
+      "lastName": "Upton",
+      "user": "King Rohan MD"
+    },
+    "uuid": "c9d1f77f-b8c0-46f3-a07b-d2749ccacf2f"
   },
   "user": {
-    "age": 59,
-    "bio": "placeat quibusdam nesciunt odit facilis deserunt non magni blanditiis autem odio voluptatem sint nostrum voluptatem vel officia incidunt vitae vero.",
-    "birthday": "2029-02-07T21:58:53.0352641+05:30",
-    "email": "lulu@yahoo.com",
-    "female_firstName": "Cydney",
+    "bio": "asperiores omnis veniam sunt porro rerum velit consequatur et ut nesciunt itaque eveniet fugit libero amet facere distinctio quia illum.",
+    "birthday": "2021-02-10T02:49:01.4166387+05:30",
+    "email": "moore.justine@hotmail.com",
+    "female_firstName": "Vallie",
     "female_title": "Ms.",
-    "firstName": "Willow",
-    "gamer_tag": "VagaBond",
+    "firstName": "Edd",
+    "gamer_tag": "Grave",
     "gender": "Female",
-    "image": "https://randomuser.me/api/portraits/med/men/9.jpg",
-    "lastName": "Harris",
-    "maleFirstName": "Jermey",
+    "image": "https://randomuser.me/api/portraits/med/men/0.jpg",
+    "lastName": "Renner",
+    "maleFirstName": "Edgardo",
     "maleTitle": "Mr.",
-    "password": "ouwlbmqpt",
-    "phone": "840-310-9781 x335",
-    "ssn": "212696526",
+    "password": "u}hbcfnsmv",
+    "phone": "(450) 550-2879",
+    "ssn": "983266484",
     "title": "Ms.",
-    "user": "Mr. Lazaro Renner",
-    "userName": "alena",
-    "user_id": "66645705-adf5-4582-ad93-f93ef378d9b8"
+    "user": "Carolyne Willms",
+    "userName": "Mr. Larue Considine V",
+    "user_id": "972503c5-91af-4ab1-a6b6-03ef8c8e5c5b"
   },
   "vehicle": {
-    "vehicle": "Minivan",
-    "vehicleBrand": "Chevrolet",
-    "vehiclePlate": "ВX7279KР",
-    "vehicleTransmission": "Semi-auto",
-    "vehicleType": "Bio Gas"
+    "vehicle": "Pickup",
+    "vehicleBrand": "Maserati",
+    "vehiclePlate": "ВO5892OМ",
+    "vehicleTransmission": "Tiptronic",
+    "vehicleType": "Hybrid"
   }
 }
 ```
