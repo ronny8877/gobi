@@ -430,7 +430,7 @@ curl http://localhost:8080/me -H "Cookie : auth=1234567890; other=other"
 ```
 
 
-## Ref 
+# Ref 
 A lot of endpoints can share similar Response Schema Or you might need an array of Custom data. You can easily solve this problem by using the Ref key. The Ref key will allow you to reference a response object from reference.
 
 This allows you to declare Most of the common Schema in one Place then just reference it where-ever needed.
