@@ -119,7 +119,7 @@ After The config you can add the endpoints you want to mock. The structure of th
                     "name":"User()",
                     "address":"Address()",
                     "display_picture":"DiceBearImage(pixel-art)",
-                    "message":"Success(any message you want)",
+                    "message":"Message(any message you want)",
                     "payment_info":{
                         "credit_card":"Finance(creditCard)",
                         "card_type":"Finance(cardType)",
