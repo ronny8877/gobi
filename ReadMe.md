@@ -148,7 +148,7 @@ After The config you can add the endpoints you want to mock. The structure of th
 }
 ```
 ##### Path params
-You can also add path params to the endpoint. The path params should be added in the path with a colon before the name of the param. The value of the path param will be available in the response object.
+You can also add path params to the endpoint. The path params should be added in the path with a colon before the name of the param.
 
 ```json
 {
