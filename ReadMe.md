@@ -20,7 +20,7 @@ This is my first program in Go, and I am enjoying the language. A mock server is
 Either download the binary from the releases or build it yourself.  :) 
 
 ## Usage
-The app is simple, It needs a json file named <b>input.json</b> to be present in the same directory as the binary. The json file should have the following structure:
+The app is simple, It needs a json file named <b>api.json</b> to be present in the same directory as the binary. If the file is not present we'll create a new Empty file The json file should have the following structure:
 
 ```json
 {

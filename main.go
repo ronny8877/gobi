@@ -71,7 +71,15 @@ var defaultLatency = 0
 var defaultFailRate = float32(0.0)
 var defaultPort = 8080
 var defaultLogging = false
+var filename = "api.json"
 
+var defaultSchema = `
+{
+"config": {},
+"ref": {},
+"api": []
+}
+`
 var defaultConfig = AppConfig{
 	Prefix:   "/api",
 	Port:     8080,
@@ -82,16 +90,33 @@ var defaultConfig = AppConfig{
 
 var logger = Logger(true)
 
+func fileExistsOrCreate() error {
+	_, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		fmt.Println("File does not exist, creating a new one...")
+		file, err := os.Create(filename)
+		if err != nil {
+			return fmt.Errorf("error creating file: %w", err)
+		}
+		defer file.Close()
+		_, err = file.WriteString(defaultSchema)
+		if err != nil {
+			return fmt.Errorf("error writing to file: %w", err)
+		}
+	}
+	return nil
+}
+
 func loadConfig(app *App) error {
 	// Read the file
-	file, err := os.ReadFile("input.json")
+	file, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("error reading file: %w", err)
 	}
 
 	// Check if the file is empty
 	if len(file) == 0 {
-		return fmt.Errorf("error: input.json is empty")
+		return fmt.Errorf("error: %s is empty", filename)
 	}
 
 	// Create a new instance of AppInput
@@ -165,9 +190,10 @@ func watchConfigFile(filename string, app *App) {
 var app App
 
 func main() {
+	fileExistsOrCreate()
 	// Load the configuration
 	loadConfig(&app)
-	go watchConfigFile("input.json", &app)
+	go watchConfigFile(filename, &app)
 
 	// Start the server
 	go startServer(&app)
@@ -182,8 +208,6 @@ func main() {
 }
 
 func startServer(app *App) {
-
-	// Health Check
 	//So with even a minimal setup, we can check if the server is running
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
