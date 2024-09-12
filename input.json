@@ -1,251 +1,32 @@
 {
-  "config": {
-    "prefix": "/api",
-    "latency": 200,
-    "Port": 3000,
-    "logging": true,
-    "failRate": 0,
-    "timeout": 1000,
-    "auth": {
-      "apiKey": "1234567890",
-      "bearer": "1234567890",
-      "cookie": "auth=1234567890"
-    }
-  },
-  "ref": {
-    "reusableUser": {
-      "user": "User()",
-      "email": "User(email)",
-      "firstName": "User(firstName)",
-      "lastName": "User(lastName)"
-    }
-  },
-  "api": [
+  "config":{},
+  "ref":{},
+  "api":[
     {
-      "path": "/all/data",
-      "latency": 200,
-      "method": "GET",
-      "failRate": 0,
-      "auth": {
-        "protected": true,
-        "protectedBy": "apiKey"
-      },
-      "response": {
-        "color": {
-          "color": "Color()",
-          "hex": "Color(hex)",
-          "rgb": "Color(rgb)",
-          "rgba": "Color(rgba)",
-          "safe": "Color(safe)",
-          "css": "Color(css)"
-        },
-        "address": {
-          "address": "Address()",
-          "city": "Address(city)",
-          "state": "Address(state)",
-          "country": "Address(country)",
-          "zip": "Address(zip)",
-          "latitude": "Address(latitude)",
-          "longitude": "Address(longitude)",
-          "secondary": "Address(full)",
-          "street": "Address(street)",
-          "country_code": "Address(countryCode)",
-          "state_code": "Address(stateAbbr)",
-          "countryAbbr": "Address(countryAbbr)"
-        },
-        "company": {
-          "company": "Company()",
-          "catch_phrase": "Company(catchPhrase)",
-          "bs": "Company(bs)",
-          "jobTitle": "Company(jobTitle)",
-          "ein": "Company(ein)",
-          "suffix": "Company(suffix)",
-          "mail": "Company(mail)"
-        },
-        "internet": {
-          "url": "Internet()",
-          "domain": "Internet(domain)",
-          "ip": "Internet(ip)",
-          "ipv6": "Internet(ipv6)",
-          "mac": "Internet(mac)",
-          "httpMethod": "Internet(httpMethod)",
-          "tld": "Internet(tld)",
-          "slug": "Internet(slug)",
-          "status_code": "Internet(statusCode)",
-          "free_email": "Internet(freeEmail)",
-          "safe_email": "Internet(safeEmail)",
-          "status_code_message": "Internet(statusCodeMessage)",
-          "user_agent": "Internet(userAgent)",
-          "sha256": "Internet(sha256)",
-          "md5": "Internet(md5)",
-          "sha512": "Internet(sha512)",
-          "sqlId": "Internet(sqlId)"
-        },
-        "user": {
-          "user": "User()",
-          "email": "User(email)",
-          "firstName": "User(firstName)",
-          "lastName": "User(lastName)",
-          "female_firstName": "User(fFirstName)",
-          "female_title": "User(fTitle)",
-          "maleFirstName": "User(mFirstName)",
-          "maleTitle": "User(mTitle)",
-          "phone": "User(phone)",
-          "userName": "User(userName)",
-          "password": "User(password)",
-          "title": "User(title)",
-          "gender": "User(gender)",
-          "ssn": "User(ssn)",
-          "bio": "User(bio)",
-          "birthday": "User(birthday)",
-          "age": "Age()",
-          "gamer_tag": "User(gamerTag)",
-          "image": "User(image)",
-          "user_id": "Uuid()"
-        },
-        "finance": {
-          "amount": "Finance()",
-          "credit_card": "Finance(creditCard)",
-          "card_type": "Finance(cardType)",
-          "exp": "Finance(cardExpirationDate)",
-          "iban": "Finance(iban)",
-          "currency": "Finance(currency)",
-          "currencyCode": "Finance(currencyCode)",
-          "currencyAndCode": "Finance(currencyAndCode)",
-          "amountWithCurrency": "Finance(amountWithCurrency)",
-          "btcAddress": "Finance(btcAddress)",
-          "ethAddress": "Finance(ethAddress)"
-        },
-        "Lorem": {
-          "word": "Lorem(type=word,len=1)",
-          "words": "Lorem(type=words,len=2)",
-          "sentence": "Lorem(type=sentence,len=2)",
-          "sentences": "Lorem(type=sentences,len=2)",
-          "paragraph": "Lorem(type=paragraph,len=2)",
-          "paragraphs": "Lorem(type=paragraphs,len=1)",
-
-          "Lorem": "Lorem()"
-        },
-        "misc": {
-          "random bool": "Bool()",
-          "always true": "Bool(true)",
-          "random float": "Float()",
-          "float": "Float(min=0,max=1)",
-          "random integer": "Int()",
-          "int": "Int(min=20,max=100)",
-          "message": "Message(Any custom message you want)",
-          "json": "Json()",
-          "array": "Array()",
-          "array with len": "Array(len=20)",
-          "array with len and type": "Array(len=20,type=User(email))",
-          "uuid": "Uuid()",
-          "ref": "Ref(ref.reusableUser)",
-          "array with custom data": "Array(len=2,type=Ref(ref.reusableUser))"
-        },
-        "language": {
-          "language": "Language()",
-          "languageabbr": "Language(abbr)",
-          "programming": "Language(programming)"
-        },
-        "app": {
-          "appName": "App()",
-          "appVersion": "App(version)",
-          "platform": "App(platform)"
-        },
-        "vehicle": {
-          "vehicle": "Vehicle()",
-          "vehicleBrand": "Vehicle(brand)",
-          "vehicleType": "Vehicle(type)",
-          "vehicleTransmission": "Vehicle(transmission)",
-          "vehiclePlate": "Vehicle(plate)"
-        },
-        "Time": {
-          "time": "Time()",
-          "unix": "Time(unix)",
-          "unixNano": "Time(unixNano)",
-          "iso": "Time(iso)",
-          "day": "Time(day)",
-          "ansi": "Time(ansi)",
-          "monthName": "Time(monthName)",
-          "timezone": "Time(timezone)",
-          "year": "Time(year)",
-          "month": "Time(month)",
-          "months": "Time(months)",
-          "days": "Time(days)"
-        },
-        "DiceBearImage": {
-          "adventurerNeutral": "DiceBearImage(adventurer-neutral)",
-          "avataaars": "DiceBearImage(avataaars)",
-          "avataaarsNeutral": "DiceBearImage(avataaars-neutral)",
-          "bigEars": "DiceBearImage(big-ears)",
-          "bigEarsNeutral": "DiceBearImage(big-ears-neutral)",
-          "bigSmile": "DiceBearImage(big-smile)",
-          "bottts": "DiceBearImage(bottts)",
-          "botttsNeutral": "DiceBearImage(bottts-neutral)",
-          "croodles": "DiceBearImage(croodles)",
-          "croodlesNeutral": "DiceBearImage(croodles-neutral)",
-          "dylan": "DiceBearImage(dylan)",
-          "funEmoji": "DiceBearImage(fun-emoji)",
-          "identicon": "DiceBearImage(identicon)",
-          "initials": "DiceBearImage(initials)",
-          "glass": "DiceBearImage(glass)",
-          "lorelei": "DiceBearImage(lorelei)",
-          "loreleiNeutral": "DiceBearImage(lorelei-neutral)",
-          "micah": "DiceBearImage(micah)",
-          "miniavs": "DiceBearImage(miniavs)",
-          "notionists": "DiceBearImage(notionists)",
-          "notionistsNeutral": "DiceBearImage(notionists-neutral)",
-          "openPeeps": "DiceBearImage(open-peeps)",
-          "personas": "DiceBearImage(personas)",
-          "pixelArt": "DiceBearImage(pixel-art)",
-          "pixelArtNeutral": "DiceBearImage(pixel-art-neutral)",
-          "rings": "DiceBearImage(rings)",
-          "shapes": "DiceBearImage(shapes)",
-          "thumbs": "DiceBearImage(thumbs)"
-        },
-        "Placehold": {
-          "default": "Placehold()",
-          "customWidth": "Placehold(width=1024)",
-          "customHeight": "Placehold(height=768)",
-          "customText": "Placehold(text=CustomText)",
-          "customFont": "Placehold(font=Roboto)",
-          "customColor": "Placehold(color=ff0000)",
-          "customBgColor": "Placehold(bgColor=000000)",
-          "customWidthHeight": "Placehold(width=1024,height=768)",
-          "customWidthText": "Placehold(width=1024,text=CustomText)",
-          "customWidthFont": "Placehold(width=1024,font=Roboto)",
-          "customWidthColor": "Placehold(width=1024,color=ff0000)",
-          "customWidthBgColor": "Placehold(width=1024,bgColor=000000)",
-          "customHeightText": "Placehold(height=768,text=CustomText)",
-          "customHeightFont": "Placehold(height=768,font=Roboto)",
-          "customHeightColor": "Placehold(height=768,color=ff0000)",
-          "customHeightBgColor": "Placehold(height=768,bgColor=000000)",
-          "customTextFont": "Placehold(text=CustomText,font=Roboto)",
-          "customTextColor": "Placehold(text=CustomText,color=ff0000)",
-          "customTextBgColor": "Placehold(text=CustomText,bgColor=000000)",
-          "customFontColor": "Placehold(font=Roboto,color=ff0000)",
-          "customFontBgColor": "Placehold(font=Roboto,bgColor=000000)",
-          "customColorBgColor": "Placehold(color=ff0000,bgColor=000000)",
-          "allCustom": "Placehold(width=1024,height=768,text=CustomText,font=Roboto,color=ff0000,bgColor=000000)"
-        },
-        "LoremPicsum": {
-          "default": "LoremPicsum()",
-          "customWidth": "LoremPicsum(width=400)",
-          "customHeight": "LoremPicsum(height=300)",
-          "customBlur": "LoremPicsum(blur=2)",
-          "customGrayscale": "LoremPicsum(grayscale=true)",
-          "customWidthHeight": "LoremPicsum(width=400,height=300)",
-          "customWidthBlur": "LoremPicsum(width=400,blur=2)",
-          "customWidthGrayscale": "LoremPicsum(width=400,grayscale=true)",
-          "customHeightBlur": "LoremPicsum(height=300,blur=2)",
-          "customHeightGrayscale": "LoremPicsum(height=300,grayscale=true)",
-          "customBlurGrayscale": "LoremPicsum(blur=2,grayscale=true)",
-          "customWidthHeightBlur": "LoremPicsum(width=400,height=300,blur=2)",
-          "customWidthHeightGrayscale": "LoremPicsum(width=400,height=300,grayscale=true)",
-          "customWidthBlurGrayscale": "LoremPicsum(width=400,blur=2,grayscale=true)",
-          "customHeightBlurGrayscale": "LoremPicsum(height=300,blur=2,grayscale=true)",
-          "allCustom": "LoremPicsum(width=400,height=300,blur=2,grayscale=true)"
-        }
+      "name":"get",
+      "path":"/collections/:collectionId",
+      "method":"GET",
+      "responseType":"Array(20)",
+      "response":{
+        "title": "Company()",
+        "description": "Lorem(type=sentence,len=26)",
+        "isPublic": "Bool()",
+        "tags": "Array(type=User(username),len=3)",
+        "created_at": "Time(unixNano)",
+        "collection_items": "Int(min=0,max=100)",
+        "id": "Uuid()",
+        "collection_color": "Color(hex)"
+      }
+    },{
+      "path":"/user",
+      "method":"POST",
+      "responseType":"Company()",
+      "response":{
+        "username": "User(username)",
+        "email": "Email()",
+        "bio": "Lorem(type=sentence,len=26)",
+        "created_at": "Time(unixNano)",
+        "isPremium": "Bool()"
       }
     }
   ]
