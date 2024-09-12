@@ -4,7 +4,7 @@
   "api":[
     {
       "name":"get",
-      "path":"/collections/:collectionId",
+      "path":"/collections/:id",
       "method":"GET",
       "responseType":"Array(20)",
       "response":{

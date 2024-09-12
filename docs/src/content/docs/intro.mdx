@@ -1,0 +1,39 @@
+---
+title: "Introduction"
+slug: "intro"
+---
+
+<div class="text-3xl">Gobi</div>
+
+<hr/>
+<br/>
+<i> A simple Mock server with Fine grain Controls </i>
+
+<br/>
+<br/>
+
+## What is Gobi?
+
+Gobi is a simple mock server that can be used to mock APIs. It is designed to be simple to use and easy to configure.
+It is written in Go and is easy to Use and run.
+<br/>
+The Mock data is powred by [Faker](https://github.com/jaswdr/faker), and Offers a wide range of mock data.
+
+<br/>
+## Getting Started
+
+To get started with Gobi, you can download the binary and build it from source.
+After that you can start just by running the binary.
+
+> **_NOTE:_**  You'll need to have a configuration file in the same directory as the binary. The configuration file is a simple JSON file that contains the routes and the responses that you want to mock and other server related configurations.
+
+<br/>
+
+``` json title="input.json"
+{
+    "config":{},
+    "api":[]
+}
+```
+This will be the minimum configuration file that you need to have to run the server. The file should be named `input.json` and should be in the same directory as the binary.
+

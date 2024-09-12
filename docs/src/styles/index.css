@@ -1,0 +1,33 @@
+.markdown h1 {
+     @apply text-4xl font-bold;
+}
+
+.markdown  h2 {
+     @apply text-3xl font-bold;
+}
+
+.markdown  h3 {
+     @apply text-2xl font-bold;
+}
+
+.markdown h4 {
+     @apply text-xl font-bold;
+}
+
+
+.markdown a {
+     @apply text-blue-500;
+}
+
+
+p {
+     @apply p-2;
+}
+
+.astro-code{
+        @apply rounded-xl px-3 py-2;
+}
+
+.markdown blockquote {
+     @apply border-l-4 border-gray-300 pl-2 bg-gray-200 rounded;
+}
