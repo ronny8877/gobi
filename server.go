@@ -158,13 +158,13 @@ func startServer(app *App) {
 					if respType == "Array" {
 						arrLenInt, _ := strconv.Atoi(arg)
 						for i := 0; i < arrLenInt; i++ {
-							response = append(response, ResponseBuilder(api.Response))
+							response = append(response, responseBuilder(api.Response))
 						}
 						json.NewEncoder(w).Encode(response)
 						break
 					}
 				} else {
-					response := ResponseBuilder(api.Response)
+					response := responseBuilder(api.Response)
 					json.NewEncoder(w).Encode(response)
 					break
 				}

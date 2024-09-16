@@ -3,14 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
+	"github.com/charmbracelet/log"
 	"github.com/fsnotify/fsnotify"
+	"github.com/ronny8877/gobi/cli"
 )
 
 type ProtectedByType string
@@ -64,12 +62,6 @@ type App struct {
 	APIs   []API                   `json:"api"`
 }
 
-type model struct {
-	choices  []string         // items on the to-do list
-	cursor   int              // which to-do list item our cursor is pointing at
-	selected map[int]struct{} // which to-do items are selected
-}
-
 var defaultLatency = 0
 var defaultFailRate = float32(0.0)
 var defaultPort = 8080
@@ -94,6 +86,7 @@ var defaultConfig = AppConfig{
 var logger = Logger(true)
 
 func fileExistsOrCreate() error {
+	log.Debug("Checking if file exists...")
 	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		fmt.Println("File does not exist, creating a new one...")
@@ -193,22 +186,24 @@ func watchConfigFile(filename string, app *App) {
 var app App
 
 func main() {
-	welcomeMessage()
-	list, _ := getFilesList(".")
-	fmt.Println(list)
-	fileExistsOrCreate()
-	// Load the configuration
-	loadConfig(&app)
-	go watchConfigFile(filename, &app)
 
-	// Start the server
-	go startServer(&app)
-	logger.debug("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
-	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
+	cli.StartApp()
 
-	// Wait for interrupt signal to gracefully shutdown the application
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	<-sigChan
-	fmt.Println("Shutting down...")
+	// list, _ := getFilesList(".")
+	// fmt.Println(list)
+	// fileExistsOrCreate()
+	// // Load the configuration
+	// loadConfig(&app)
+	// go watchConfigFile(filename, &app)
+
+	// // Start the server
+	// go startServer(&app)
+	// logger.debug("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
+	// http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
+
+	// // Wait for interrupt signal to gracefully shutdown the application
+	// sigChan := make(chan os.Signal, 1)
+	// signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	// <-sigChan
+	// fmt.Println("Shutting down...")
 }
