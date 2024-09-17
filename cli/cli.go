@@ -23,17 +23,31 @@ const (
 	maxWidth = 80
 )
 
+var (
+	textStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("211"))
+	mainMenuStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
+	focusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	checkMark     = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).SetString("✓")
+	crossMark     = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).SetString("✗")
+	errorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+)
+
 type model struct {
-	Choices      []string
-	Index        int
-	Chosen       string
-	Loading      bool
-	ConfigLoaded bool
-	Quitting     bool
-	Progress     float64
-	Help         help.Model
-	Error        error
-	Spinner      spinner.Model
+	Screen           string
+	Choices          []string
+	Index            int
+	Chosen           string
+	Loading          bool
+	ConfigLoaded     bool
+	Quitting         bool
+	Progress         float64
+	Help             help.Model
+	Error            error
+	Spinner          spinner.Model
+	Cursor           int
+	TextInput        textinput.Model
+	IsInputValid     bool
+	CreateNewOptions []string
 }
 
 type Config struct {
@@ -55,7 +69,7 @@ func initialModel() model {
 		if ok != nil {
 			fmt.Println("Error creating config file:", ok)
 			return model{
-				Loading: false,
+				Loading: true,
 				Error:   ok,
 			}
 		}
@@ -67,24 +81,144 @@ func initialModel() model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
+	ti := textinput.New()
+	ti.Focus()
+	ti.CharLimit = 256
+	ti.Width = 60
+	ti.CursorStyle = focusedStyle
+
 	return model{
-		Help:    h,
-		Spinner: s,
-		Chosen:  "welcome",
+		Choices:          []string{"Create new", "Open Folder", "Select from List"},
+		CreateNewOptions: []string{"Empty Project", "Project With Config", "Project With Example"},
+		Cursor:           1,
+		Help:             h,
+		Spinner:          s,
+		Screen:           "main",
+		TextInput:        ti,
+		IsInputValid:     true,
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(loadConfig, m.Spinner.Tick)
+	return tea.Batch(loadConfig, m.Spinner.Tick, textinput.Blink)
 }
 
+func navigateMenu(msg tea.Msg, m model, choices []string) (model, tea.Cmd) {
+	switch msg {
+	case "q", "esc", "ctrl+c":
+		m.Quitting = true
+		return m, tea.Quit
+	case "up", "k":
+		if m.Cursor > 0 {
+			m.Cursor--
+		}
+
+	// The "down" and "j" keys move the cursor down
+	case "down", "j":
+		if m.Cursor < len(choices)-1 {
+			m.Cursor++
+		}
+	}
+	return m, nil
+}
+func updateMenu(msg tea.Msg, m model, choices []string, selectFunction func(model) (model, tea.Cmd)) (model, tea.Cmd) {
+	m, cmd := navigateMenu(msg, m, choices)
+	switch msg {
+	// The "enter" key and the spacebar (a literal space) toggle
+	// the selected state for the item that the cursor is pointing at.
+	case "enter", " ":
+		return selectFunction(m)
+	}
+	return m, cmd
+}
+
+// checkIfPathExists checks if a given path exists.
+func checkIfPathExists(path string) bool {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+// isValidFileName verifies if the file name follows the convention anyname.gobi.json
+// and if the provided path exists.
+func isValidFileName(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	// Split the name to separate the path and the file name
+	pathParts := strings.Split(name, "/")
+	if len(pathParts) == 1 {
+		pathParts = strings.Split(name, "\\")
+	}
+
+	// Extract the file name and the path
+	fileName := pathParts[len(pathParts)-1]
+	path := strings.Join(pathParts[:len(pathParts)-1], "/")
+
+	// Check if the path exists
+	if path != "" && !checkIfPathExists(path) {
+		return false
+	}
+
+	// Verify if the file name follows the convention anyname.gobi.json
+	if strings.HasSuffix(fileName, ".gobi.json") && len(strings.Split(fileName, ".")) == 3 {
+		return true
+	}
+
+	return false
+}
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
+	var cmd tea.Cmd
 	// fmt.Println("Update", msg, m)
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		k := msg.String()
 		if k == "q" || k == "esc" || k == "ctrl+c" {
 			m.Quitting = true
 			return m, tea.Quit
+		}
+		if m.Screen == "main" {
+			return updateMenu(msg.String(), m, m.Choices, func(m model) (model, tea.Cmd) {
+				m.Chosen = m.Choices[m.Cursor]
+				switch m.Chosen {
+				case "Create new":
+					m.Screen = "create"
+					return m, nil
+				}
+				return m, nil
+			})
+		}
+		if m.Screen == "createChoices" {
+			return updateMenu(msg.String(), m, m.CreateNewOptions, func(m model) (model, tea.Cmd) {
+				m.Chosen = m.CreateNewOptions[m.Cursor]
+				switch m.Chosen {
+				case "Empty Project":
+					m.Loading = true
+					// createFile(m.TextInput.Value())
+					updateFilesList(m.TextInput.Value())
+					m.Loading = false
+					return m, nil
+				}
+				return m, nil
+			})
+		}
+
+		if strings.ToLower(m.Screen) == "create" {
+			if k == "enter" {
+				if isValidFileName(m.TextInput.Value()) {
+					m.Screen = "createChoices"
+					m.Cursor = 0
+					m.IsInputValid = true
+				} else {
+					m.IsInputValid = false
+				}
+
+				return m, nil
+			}
+			m.TextInput, cmd = m.TextInput.Update(msg)
+			return m, cmd
 		}
 	}
 	// m.Error = fmt.Errorf("Unknown message: %v", msg)
@@ -108,27 +242,82 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	var cmd tea.Cmd
 	m.Spinner, cmd = m.Spinner.Update(spinner.TickMsg{})
 	return m, cmd
 
 }
 
 func errorView(err error) string {
-	//timer := time.NewTimer(5 * time.Second)
-
 	return fmt.Sprintf("❌ Error: %v", err)
 }
 
-func (m model) View() string {
-	if m.Chosen == "welcome" {
-		s := welcomeMessage()
-		s += "\n\n"
-		s += "Press q to quit"
-		return s
+func createNewApi(m model) string {
+	s := ""
+	if len(m.TextInput.Value()) > 2 && !m.IsInputValid {
+		s = errorStyle.Render("Invalid file name " + crossMark.Render())
 	}
+	m.TextInput.Placeholder = "api.gobi.json"
+	return fmt.Sprintf(
+		"Name the new Project?\n Either D://Code//api.gobi.json or api.gobi.json \n\n%s\n\n%s\n\n%s\n%s",
+		m.TextInput.View(),
+		textStyle.Render("Press enter to continue"),
+		s,
+		"\n(esc to quit)",
+	) + "\n"
+
+}
+
+func listView(s string, l []string, m model) string {
+	for i, choice := range l {
+
+		// Is the cursor pointing at this choice?
+		cursor := " " // no cursor
+		if m.Cursor == i {
+			cursor = ">" // cursor!
+		}
+
+		s += fmt.Sprintf("%s  %s\n", cursor, choice)
+	}
+
+	return s
+}
+
+// func mainView(m model) string {
+// 	s := "Hi, How would you like to proceed?\n\n"
+
+// 	// Iterate over our choices
+// 	for i, choice := range m.Choices {
+
+// 		// Is the cursor pointing at this choice?
+// 		cursor := " " // no cursor
+// 		if m.Cursor == i {
+// 			cursor = ">" // cursor!
+// 		}
+
+// 		// Render the row
+// 		s += fmt.Sprintf("%s  %s\n", cursor, choice)
+// 	}
+
+// 	// Send the UI for rendering
+// 	return s
+
+// }
+
+func (m model) View() string {
+
 	if m.Loading {
-		return m.Spinner.View() + " Loading..."
+		return m.Spinner.View() + textStyle.Render(" Loading...")
+	}
+	if m.Screen == "main" {
+		s := welcomeMessage() + "\n\n" + listView("Hi, How would you like to proceed?\n\n", m.Choices, m)
+		return mainMenuStyle.Render(s)
+	}
+	if strings.ToLower(m.Screen) == "create" {
+		return createNewApi(m)
+	}
+	if m.Screen == "createChoices" {
+		s := m.TextInput.Value() + " " + checkMark.Render() + "\n\n" + listView("Get Started:\n\n", m.CreateNewOptions, m)
+		return mainMenuStyle.Render(s)
 	}
 	if m.Error != nil {
 		return errorView(m.Error)
@@ -138,7 +327,7 @@ func (m model) View() string {
 		return errorView(fmt.Errorf("Config not loaded Something went wrong"))
 	}
 
-	return "Press q to quit"
+	return "\n\nPress q to quit"
 }
 
 func StartApp() {
@@ -190,7 +379,7 @@ func renderFileList() {
 }
 
 // Function to create a file
-func createFile(path string) error {
+func createDefaultConfigFile(path string) error {
 	if path == "" {
 		path = "./" + defaultConfigFilename
 	}
@@ -265,35 +454,4 @@ func welcomeMessage() string {
 
 	// Print the styled ASCII art
 	return style.Render(asciiArt)
-}
-
-func renderAppMenu() {
-	style := lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Bold(true).Margin(1).Align(lipgloss.Center)
-	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
-	fmt.Println(style.Render("Menu"))
-	fmt.Println(itemStyle.Render("1. Create new api"))
-	fmt.Println(itemStyle.Render("2. Load from path"))
-	fmt.Println(itemStyle.Render("-------------------------------"))
-	readFilesList()
-	textarea := textinput.New()
-	textarea.Placeholder = "Enter the path to the file (leave empty for default)"
-	textarea.Focus()
-	textarea.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	textarea.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
-	textarea.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("99"))
-	//Wait for user input
-	var choice int
-	fmt.Scanln(&choice)
-	switch choice {
-	case 1:
-
-		fmt.Println("Creating new api...")
-		createFile("api.gobi.json")
-		updateFilesList("api.gobi.json")
-	case 2:
-		fmt.Println("Loading from path...")
-		loadFile("api.gobi.json")
-	default:
-		fmt.Println("Invalid choice")
-	}
 }

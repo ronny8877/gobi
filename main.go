@@ -3,7 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -189,21 +192,21 @@ func main() {
 
 	cli.StartApp()
 
-	// list, _ := getFilesList(".")
-	// fmt.Println(list)
-	// fileExistsOrCreate()
-	// // Load the configuration
-	// loadConfig(&app)
-	// go watchConfigFile(filename, &app)
+	list, _ := getFilesList(".")
+	fmt.Println(list)
+	fileExistsOrCreate()
+	// Load the configuration
+	loadConfig(&app)
+	go watchConfigFile(filename, &app)
 
-	// // Start the server
-	// go startServer(&app)
-	// logger.debug("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
-	// http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
+	// Start the server
+	go startServer(&app)
+	logger.debug("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
+	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
 
-	// // Wait for interrupt signal to gracefully shutdown the application
-	// sigChan := make(chan os.Signal, 1)
-	// signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	// <-sigChan
-	// fmt.Println("Shutting down...")
+	// Wait for interrupt signal to gracefully shutdown the application
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	<-sigChan
+	fmt.Println("Shutting down...")
 }
