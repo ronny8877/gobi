@@ -48,6 +48,7 @@ type model struct {
 	TextInput        textinput.Model
 	IsInputValid     bool
 	CreateNewOptions []string
+	StartServer      bool
 }
 
 type Config struct {
@@ -56,6 +57,46 @@ type Config struct {
 }
 
 var config Config
+
+const (
+	defaultSchema = `{
+        "config": {
+            "Port": 8080
+        },
+        "ref": {},
+        "api": []
+    }`
+
+	defaultSchemaWithExample = `{
+        "config": {
+            "Port": 8080
+        },
+        "ref": {},
+        "api": [
+            {
+                "method": "GET",
+                "path": "/example",
+                "response": {
+                    "message": "Hello, World!",
+                    "name": "User(username)"
+                }
+            }
+        ]
+    }`
+
+	defaultSchemaWithConfig = `{
+        "config": {
+            "Port": 8080,
+            "latency": 200,
+            "logging": true,
+            "failRate": 0.5,
+            "prefix": "/v2/api",
+            "auth": {}
+        },
+        "ref": {},
+        "api": []
+    }`
+)
 
 type loadError struct {
 	err error
@@ -140,6 +181,23 @@ func checkIfPathExists(path string) bool {
 	return true
 }
 
+func createApiFile(choice int, m model) error {
+	file, err := os.Create(m.TextInput.Value())
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return err
+	}
+	switch choice {
+	case 0:
+		file.WriteString(defaultSchema)
+	case 1:
+		file.WriteString(defaultSchemaWithConfig)
+	case 2:
+		file.WriteString(defaultSchemaWithExample)
+	}
+	return nil
+}
+
 // isValidFileName verifies if the file name follows the convention anyname.gobi.json
 // and if the provided path exists.
 func isValidFileName(name string) bool {
@@ -193,14 +251,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.Screen == "createChoices" {
 			return updateMenu(msg.String(), m, m.CreateNewOptions, func(m model) (model, tea.Cmd) {
 				m.Chosen = m.CreateNewOptions[m.Cursor]
-				switch m.Chosen {
-				case "Empty Project":
-					m.Loading = true
-					// createFile(m.TextInput.Value())
-					updateFilesList(m.TextInput.Value())
-					m.Loading = false
-					return m, nil
-				}
+				m.Loading = true
+				createApiFile(m.Cursor, m)
+				updateFilesList(m.TextInput.Value())
+				m.Loading = false
 				return m, nil
 			})
 		}

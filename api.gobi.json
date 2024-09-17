@@ -1,0 +1,12 @@
+{
+        "config": {
+            "Port": 8080,
+            "latency": 200,
+            "logging": true,
+            "failRate": 0.5,
+            "prefix": "/v2/api",
+            "auth": {}
+        },
+        "ref": {},
+        "api": []
+    }
