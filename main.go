@@ -11,7 +11,6 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/fsnotify/fsnotify"
-	"github.com/ronny8877/gobi/cli"
 )
 
 type ProtectedByType string
@@ -71,13 +70,6 @@ var defaultPort = 8080
 var defaultLogging = false
 var filename = "api.gobi.json"
 
-var defaultSchema = `
-{
-"config": {},
-"ref": {},
-"api": []
-}
-`
 var defaultConfig = AppConfig{
 	Prefix:   "/api",
 	Port:     8080,
@@ -106,7 +98,7 @@ func fileExistsOrCreate() error {
 	return nil
 }
 
-func loadConfig(app *App) error {
+func loadAppConfig(app *App) error {
 	// Read the file
 	file, err := os.ReadFile(filename)
 	if err != nil {
@@ -166,7 +158,7 @@ func watchConfigFile(filename string, app *App) {
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					logger.info("Config file modified, reloading...")
 					time.Sleep(100 * time.Millisecond) // Add a small delay before reloading as the it was crashing without it
-					if err := loadConfig(app); err != nil {
+					if err := loadAppConfig(app); err != nil {
 						logger.err("Error reloading config: ", err)
 					}
 				}
@@ -189,14 +181,17 @@ func watchConfigFile(filename string, app *App) {
 var app App
 
 func main() {
-
-	cli.StartApp()
+	ok := startApp()
+	if ok != nil {
+		log.Error("Error starting the app")
+		return
+	}
 
 	list, _ := getFilesList(".")
 	fmt.Println(list)
 	fileExistsOrCreate()
 	// Load the configuration
-	loadConfig(&app)
+	loadAppConfig(&app)
 	go watchConfigFile(filename, &app)
 
 	// Start the server
