@@ -4,7 +4,7 @@ A simple mock server that allows users to fine-grain control over the mock data.
 
 This is my first program in Go, and I am enjoying the language. A mock server is what I needed, so as my introduction to Go, I decided to make it in Go.
 
-# heh GOBI
+# I AM DA COOK
 
 ## Features
 - Authenticated Routes
