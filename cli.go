@@ -22,11 +22,6 @@ import (
 
 var defaultConfigFilename = "config.json"
 
-const (
-	padding  = 2
-	maxWidth = 80
-)
-
 var (
 	textStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("211"))
 	mainMenuStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
@@ -55,7 +50,6 @@ type model struct {
 	TextInput            textinput.Model
 	IsInputValid         bool
 	CreateNewOptions     []string
-	FilePicker           filepicker.Model
 	SelectedFile         string
 	StartServer          bool
 	ShouldSHowFilePicker bool
@@ -64,7 +58,7 @@ type model struct {
 }
 
 type Config struct {
-	Active string   `json:"active"`
+	Active string
 	Files  []string `json:"files"`
 }
 
@@ -114,6 +108,9 @@ type loadError struct {
 	err error
 }
 type loadSuccess struct{}
+type serverSuccessMsg struct {
+	msg string
+}
 
 func initialModel() model {
 	_, err := os.Stat(defaultConfigFilename)
@@ -171,13 +168,12 @@ func initialModel() model {
 		Screen:           "main",
 		TextInput:        ti,
 		IsInputValid:     true,
-		FilePicker:       fp,
 		Table:            t,
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(m.Spinner.Tick, textinput.Blink, m.FilePicker.Init())
+	return tea.Batch(m.Spinner.Tick, textinput.Blink)
 }
 
 func navigateMenu(msg tea.Msg, m model, choices []string) (model, tea.Cmd) {
@@ -331,6 +327,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Loading = false
 				m.StartServer = true
 				m.Screen = "server"
+				config.Active = m.TextInput.Value()
 				m.TextInput.SetValue("")
 				return m, nil
 			})
@@ -347,10 +344,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, nil
 					}
 					updateFilesList(m.TextInput.Value())
+					m.SelectedFile = m.TextInput.Value()
 					m.Cursor = 0
 					m.IsInputValid = true
-					// m.StartServer = true
-					// m.Screen = "server"
+					config.Active = m.SelectedFile
+					m.StartServer = true
+					m.Screen = ""
 					m.TextInput.SetValue("")
 				} else {
 					m.IsInputValid = false
@@ -369,6 +368,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if k == "enter" {
+				m.SelectedFile = m.Table.SelectedRow()[3]
+				m.Loading = true
+				m.StartServer = true
+				config.Active = m.SelectedFile
 				return m, tea.Batch(
 					tea.Printf("Starting with %s!", m.Table.SelectedRow()[1]),
 				)
@@ -408,6 +411,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if _, ok := msg.(serverSuccessMsg); ok {
+		m.Loading = false
+		m.Error = nil
+		return m, nil
+	}
 	if msg, ok := msg.(loadError); ok {
 		m.Loading = false
 		m.Error = msg.err
@@ -463,7 +471,9 @@ func listView(s string, l []string, m model) string {
 }
 
 func (m model) View() string {
-
+	if m.StartServer {
+		return m.Spinner.View() + textStyle.Render(" Starting server Please wait...")
+	}
 	if m.Loading {
 		return m.Spinner.View() + textStyle.Render(" Loading...")
 	}
@@ -520,7 +530,8 @@ func loadConfig() tea.Msg {
 	// Check if the file is empty
 	if len(file) == 0 {
 		tea.Println("Error: Config file is empty")
-		return loadError{fmt.Errorf("config file is empty")}
+		createDefaultConfigFile("")
+		return loadSuccess{}
 	}
 
 	err := json.Unmarshal(file, &config)
@@ -565,62 +576,39 @@ func createDefaultConfigFile(path string) error {
 	return nil
 }
 
-// Function to load a file (for demonstration purposes, just reads the content)
-func loadFile(path string) error {
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	fmt.Println("File content:\n", string(content))
-	return nil
-}
-
 // Function to update the list of files
 func updateFilesList(path string) {
-	files, err := readFilesList()
+	//Open Config.json and append the new file to the list
+	file, err := os.OpenFile("config.json", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
-		files = []string{}
-	}
-	//check if the file is already in the list
-	for _, file := range files {
-		if file == path {
-			return
-		}
-	}
-	files = append(files, path)
-	saveFilesList(files)
-}
-
-// Read files list from config.json
-func readFilesList() ([]string, error) {
-	file, err := os.Open(defaultConfigFilename)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return []string{}, nil
-		}
-		return nil, err
-	}
-	defer file.Close()
-	var files []string
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&files); err != nil {
-		return nil, err
-	}
-	return files, nil
-}
-
-// Save files list to config.json
-func saveFilesList(files []string) {
-	file, err := os.Create("config.json")
-	if err != nil {
-		fmt.Println("Error saving files list:", err)
+		fmt.Println("Error opening config file:", err)
 		return
 	}
 	defer file.Close()
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(files); err != nil {
-		fmt.Println("Error encoding files list:", err)
+	// Read the file
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		fmt.Println("Error reading config file:", err)
+		return
+	}
+	// Unmarshal the data
+	var files []string
+	if err := json.Unmarshal(data, &files); err != nil {
+		fmt.Println("Error unmarshalling config file:", err)
+		return
+	}
+	// Append the new file to the list
+	files = append(files, path)
+	// Marshal the data
+	newData, err := json.Marshal(files)
+	if err != nil {
+		fmt.Println("Error marshalling config file:", err)
+		return
+	}
+	// Write the data back to the file
+	if _, err := file.WriteAt(newData, 0); err != nil {
+		fmt.Println("Error writing to config file:", err)
+		return
 	}
 }
 

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -144,18 +143,4 @@ func parseArguments(args string) (map[string]string, error) {
 	}
 
 	return result, nil
-}
-
-func getFilesList(path string) ([]string, error) {
-	files, err := os.ReadDir(path)
-	if err != nil {
-		return nil, err
-	}
-	var fileList []string
-	for _, file := range files {
-		if strings.Contains(file.Name(), "gobi") && strings.HasSuffix(file.Name(), ".json") {
-			fileList = append(fileList, file.Name())
-		}
-	}
-	return fileList, nil
 }

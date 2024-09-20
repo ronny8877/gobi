@@ -3,10 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -79,24 +76,6 @@ var defaultConfig = AppConfig{
 }
 
 var logger = Logger(true)
-
-func fileExistsOrCreate() error {
-	log.Debug("Checking if file exists...")
-	_, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		fmt.Println("File does not exist, creating a new one...")
-		file, err := os.Create(filename)
-		if err != nil {
-			return fmt.Errorf("error creating file: %w", err)
-		}
-		defer file.Close()
-		_, err = file.WriteString(defaultSchema)
-		if err != nil {
-			return fmt.Errorf("error writing to file: %w", err)
-		}
-	}
-	return nil
-}
 
 func loadAppConfig(app *App) error {
 	// Read the file
@@ -186,10 +165,16 @@ func main() {
 		log.Error("Error starting the app")
 		return
 	}
+	serverSetup()
+}
 
-	list, _ := getFilesList(".")
-	fmt.Println(list)
-	fileExistsOrCreate()
+func serverSetup() {
+	path := config.Active
+	if path == "" {
+		path = path + "/api.gobi.json"
+		filename = path
+	}
+	filename = path
 	// Load the configuration
 	loadAppConfig(&app)
 	go watchConfigFile(filename, &app)
@@ -197,11 +182,5 @@ func main() {
 	// Start the server
 	go startServer(&app)
 	logger.debug("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
-	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
 
-	// Wait for interrupt signal to gracefully shutdown the application
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	<-sigChan
-	fmt.Println("Shutting down...")
 }
