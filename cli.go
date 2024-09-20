@@ -278,6 +278,10 @@ func getFileName(path string) string {
 
 func makeTableData(model) []table.Row {
 	var data []table.Row
+	if len(config.Files) == 0 {
+		return append(data, table.Row{"", "No files found", "", ""})
+	}
+
 	for i, file := range config.Files {
 		exist := checkIfPathExists(file)
 		status := checkMark.Render()
@@ -289,6 +293,10 @@ func makeTableData(model) []table.Row {
 		data = append(data, table.Row{strconv.Itoa(i), fileName, status, file})
 	}
 	return data
+}
+
+func closeCli() tea.Msg {
+	return serverSuccessMsg{"Server started successfully"}
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -326,10 +334,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				updateFilesList(m.TextInput.Value())
 				m.Loading = false
 				m.StartServer = true
-				m.Screen = "server"
 				config.Active = m.TextInput.Value()
 				m.TextInput.SetValue("")
-				return m, nil
+				return m, tea.Batch(closeCli)
 			})
 		}
 		if m.Screen == "open" {
@@ -355,7 +362,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.IsInputValid = false
 				}
 
-				return m, nil
+				return m, tea.Batch(closeCli)
 			}
 			m.TextInput, cmd = m.TextInput.Update(msg)
 			return m, cmd
@@ -368,12 +375,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if k == "enter" {
+				if m.Table.SelectedRow()[0] == "" {
+					return m, nil
+				}
 				m.SelectedFile = m.Table.SelectedRow()[3]
 				m.Loading = true
 				m.StartServer = true
 				config.Active = m.SelectedFile
 				return m, tea.Batch(
 					tea.Printf("Starting with %s!", m.Table.SelectedRow()[1]),
+					closeCli,
 				)
 			}
 
@@ -382,6 +393,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if m.StartServer {
+			m.Loading = false
+			m.StartServer = false
+
 			return m, tea.Quit
 		}
 
@@ -391,6 +405,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.Screen = "createChoices"
 					m.Cursor = 0
 					m.IsInputValid = true
+					updateFilesList(m.TextInput.Value())
 				} else {
 					m.IsInputValid = false
 				}
@@ -412,9 +427,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if _, ok := msg.(serverSuccessMsg); ok {
-		m.Loading = false
-		m.Error = nil
-		return m, nil
+		return m, tea.Batch(tea.ClearScreen, tea.Quit)
 	}
 	if msg, ok := msg.(loadError); ok {
 		m.Loading = false
@@ -578,35 +591,60 @@ func createDefaultConfigFile(path string) error {
 
 // Function to update the list of files
 func updateFilesList(path string) {
-	//Open Config.json and append the new file to the list
+	// Open config.json and append the new file to the list
 	file, err := os.OpenFile("config.json", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		fmt.Println("Error opening config file:", err)
 		return
 	}
 	defer file.Close()
+
 	// Read the file
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
 		fmt.Println("Error reading config file:", err)
 		return
 	}
+
 	// Unmarshal the data
-	var files []string
-	if err := json.Unmarshal(data, &files); err != nil {
-		fmt.Println("Error unmarshalling config file:", err)
-		return
+	var config Config
+	if len(data) > 0 {
+		if err := json.Unmarshal(data, &config); err != nil {
+			fmt.Println("Error unmarshalling config file:", err)
+			return
+		}
 	}
+
+	// Check if the path already exists in the list
+	for _, existingPath := range config.Files {
+		if existingPath == path {
+			fmt.Println("Path already exists in the config file")
+			return
+		}
+	}
+
 	// Append the new file to the list
-	files = append(files, path)
+	config.Files = append(config.Files, path)
+
 	// Marshal the data
-	newData, err := json.Marshal(files)
+	newData, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		fmt.Println("Error marshalling config file:", err)
 		return
 	}
+
+	// Truncate the file to ensure we overwrite it
+	if err := file.Truncate(0); err != nil {
+		fmt.Println("Error truncating config file:", err)
+		return
+	}
+
 	// Write the data back to the file
-	if _, err := file.WriteAt(newData, 0); err != nil {
+	if _, err := file.Seek(0, 0); err != nil {
+		fmt.Println("Error seeking to start of config file:", err)
+		return
+	}
+	if _, err := file.Write(newData); err != nil {
 		fmt.Println("Error writing to config file:", err)
 		return
 	}

@@ -3,7 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -113,7 +116,7 @@ func loadAppConfig(app *App) error {
 	if app.Config.Latency == nil {
 		app.Config.Latency = defaultConfig.Latency
 	}
-	logger.debug("Configuration Loaded: ")
+	logger.info("config loaded successfully")
 
 	return nil
 }
@@ -160,12 +163,30 @@ func watchConfigFile(filename string, app *App) {
 var app App
 
 func main() {
-	ok := startApp()
-	if ok != nil {
+	// Channel to signal when the Bubble Tea interface has completed
+	done := make(chan error, 1)
+
+	// Run the Bubble Tea interface in a separate goroutine
+	go func() {
+		done <- startApp()
+	}()
+
+	// Wait for the Bubble Tea interface to complete
+	if err := <-done; err != nil {
 		log.Error("Error starting the app")
 		return
 	}
+
+	if config.Active == "" {
+		log.Error("No config file provided")
+		return
+	}
 	serverSetup()
+	// Wait for interrupt signal to gracefully shutdown the application
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	<-sigChan
+	fmt.Println("Shutting down...")
 }
 
 func serverSetup() {
@@ -179,8 +200,7 @@ func serverSetup() {
 	loadAppConfig(&app)
 	go watchConfigFile(filename, &app)
 
-	// Start the server
 	go startServer(&app)
-	logger.debug("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
-
+	logger.info("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
+	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
 }
