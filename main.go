@@ -80,6 +80,7 @@ var app App = App{
 	Config: defaultConfig,
 	APIs:   []API{},
 }
+
 var logger = app.Logger()
 
 func (app *App) loadAppConfig(filename string) error {
@@ -191,6 +192,7 @@ func serverSetup() {
 	go app.watchConfigFile(filename)
 
 	go startServer(&app)
+	app.Config.Port = findValidPort(app.Config.Port)
 	logger.info("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
 	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
 }
