@@ -10,7 +10,7 @@ import (
 	"github.com/jaswdr/faker/v2"
 )
 
-func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
+func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 	var response map[string]interface{}
 	//LOL FUNNY FIX
 	seed := time.Now().UnixNano()
@@ -339,7 +339,7 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 					result = append(result, fake.Lorem().Word())
 					continue
 				}
-				response := ResponseBuilder(map[string]interface{}{"type": dataType})
+				response := responseBuilder(map[string]interface{}{"type": dataType})
 				if value, ok := response["type"].(string); ok {
 					result = append(result, value)
 				} else if value, ok := response["type"].(map[string]interface{}); ok {
@@ -598,7 +598,7 @@ func ResponseBuilder(rawData map[string]interface{}) map[string]interface{} {
 					if key == item {
 						// Perform type assertion to ensure value is of type map[string]interface{}
 						if mapValue, ok := value.(map[string]interface{}); ok {
-							return ResponseBuilder(mapValue)
+							return responseBuilder(mapValue)
 						} else {
 							fmt.Println("Type assertion failed for key:", key)
 							return "Type assertion failed"

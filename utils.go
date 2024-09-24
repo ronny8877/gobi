@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 )
@@ -143,4 +144,22 @@ func parseArguments(args string) (map[string]string, error) {
 	}
 
 	return result, nil
+}
+
+// checkIfPortIsAvailable checks if a given port is available for use.
+func checkIfPortIsAvailable(port int) bool {
+	//Just to satisfy NICK
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return false
+	}
+	defer listener.Close()
+	return true
+}
+func findValidPort(port int) int {
+	for !checkIfPortIsAvailable(port) {
+		logger.err("Port %d is already in use", port)
+		port++
+	}
+	return port
 }

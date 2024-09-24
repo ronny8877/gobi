@@ -3,16 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
+	"github.com/charmbracelet/log"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -69,17 +66,8 @@ type App struct {
 
 var defaultLatency = 0
 var defaultFailRate = float32(0.0)
-var defaultPort = 8080
-var defaultLogging = false
-var filename = "api.json"
+var defaultLogging = true
 
-var defaultSchema = `
-{
-"config": {},
-"ref": {},
-"api": []
-}
-`
 var defaultConfig = AppConfig{
 	Prefix:   "/api",
 	Port:     8080,
@@ -88,26 +76,14 @@ var defaultConfig = AppConfig{
 	FailRate: &defaultFailRate, // Optional field        // Optional field
 }
 
-var logger = Logger(true)
-
-func fileExistsOrCreate() error {
-	_, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		fmt.Println("File does not exist, creating a new one...")
-		file, err := os.Create(filename)
-		if err != nil {
-			return fmt.Errorf("error creating file: %w", err)
-		}
-		defer file.Close()
-		_, err = file.WriteString(defaultSchema)
-		if err != nil {
-			return fmt.Errorf("error writing to file: %w", err)
-		}
-	}
-	return nil
+var app App = App{
+	Config: defaultConfig,
+	APIs:   []API{},
 }
 
-func loadConfig(app *App) error {
+var logger = app.Logger()
+
+func (app *App) loadAppConfig(filename string) error {
 	// Read the file
 	file, err := os.ReadFile(filename)
 	if err != nil {
@@ -119,36 +95,19 @@ func loadConfig(app *App) error {
 		return fmt.Errorf("error: %s is empty", filename)
 	}
 
-	// Create a new instance of AppInput
-	var newApp App
-
 	// Unmarshal the JSON into the new instance
-	err = json.Unmarshal(file, &newApp)
+	err = json.Unmarshal(file, &app)
+
 	if err != nil {
 		return fmt.Errorf("error parsing JSON")
 	}
 
-	// Copy the values from the new instance to the existing app instance
-	*app = newApp
-
-	// Set default values if necessary
-	if int(app.Config.Port) == 0 {
-		app.Config.Port = defaultPort
-	}
-
-	if app.Config.Prefix == "" {
-		app.Config.Prefix = defaultConfig.Prefix
-	}
-
-	if app.Config.Latency == nil {
-		app.Config.Latency = defaultConfig.Latency
-	}
-	logger.debug("Configuration Loaded: ")
+	logger.info("config loaded successfully")
 
 	return nil
 }
 
-func watchConfigFile(filename string, app *App) {
+func (app *App) watchConfigFile(filename string) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal("Error creating watcher:", err)
@@ -167,7 +126,10 @@ func watchConfigFile(filename string, app *App) {
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					logger.info("Config file modified, reloading...")
 					time.Sleep(100 * time.Millisecond) // Add a small delay before reloading as the it was crashing without it
-					if err := loadConfig(app); err != nil {
+					app.Config = defaultConfig
+					app.APIs = []API{}
+					app.Ref = nil
+					if err := app.loadAppConfig(filename); err != nil {
 						logger.err("Error reloading config: ", err)
 					}
 				}
@@ -187,19 +149,26 @@ func watchConfigFile(filename string, app *App) {
 	<-done
 }
 
-var app App
-
 func main() {
-	fileExistsOrCreate()
-	// Load the configuration
-	loadConfig(&app)
-	go watchConfigFile(filename, &app)
+	// Channel to signal when the Bubble Tea interface has completed
+	done := make(chan error, 1)
 
-	// Start the server
-	go startServer(&app)
-	logger.debug("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
-	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
+	// Run the Bubble Tea interface in a separate goroutine
+	go func() {
+		done <- startApp()
+	}()
 
+	// Wait for the Bubble Tea interface to complete
+	if err := <-done; err != nil {
+		log.Error("Error starting the app")
+		return
+	}
+
+	if config.Active == "" {
+		log.Error("No config file provided")
+		return
+	}
+	serverSetup()
 	// Wait for interrupt signal to gracefully shutdown the application
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -207,169 +176,23 @@ func main() {
 	fmt.Println("Shutting down...")
 }
 
-func startServer(app *App) {
-	//So with even a minimal setup, we can check if the server is running
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-Powered-By", "Gobi")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-	})
-	//Mock Auth server
-	http.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-Powered-By", "Gobi")
+func serverSetup() {
+	filename := "api.gobi.json"
+	path := config.Active
+	if path == "" {
+		path = path + "/api.gobi.json"
+		filename = path
+	}
+	filename = path
+	// Load the configuration
+	if err := app.loadAppConfig(filename); err != nil {
+		logger.err("Error loading config: ", err)
+		return
+	}
+	go app.watchConfigFile(filename)
 
-		//If no auth is provided, return an error
-		if app.Config.Auth == nil {
-			http.Error(w, `{"error": "No Auth Configured"}`, http.StatusInternalServerError)
-			return
-		}
-
-		//Send whatever creds we had in the response
-		response := map[string]interface{}{
-			"apiKey":      app.Config.Auth.ApiKey,
-			"bearerToken": app.Config.Auth.BearerToken,
-			"cookie":      app.Config.Auth.Cookie,
-		}
-		// attach the cookie in the header if it is provided
-		if app.Config.Auth.Cookie != nil && *app.Config.Auth.Cookie != "" {
-			cookieParts := strings.SplitN(*app.Config.Auth.Cookie, "=", 2)
-			if len(cookieParts) == 2 {
-				http.SetCookie(w, &http.Cookie{
-					Name:  cookieParts[0],
-					Value: cookieParts[1],
-				})
-			} else {
-				// Handle the case where the cookie string is not in the expected format
-				http.Error(w, "Invalid cookie format", http.StatusInternalServerError)
-				return
-			}
-		}
-		//Attach the api key in the header if it is provided
-		if app.Config.Auth.Cookie != nil && *app.Config.Auth.ApiKey != "" {
-			w.Header().Set("X-API-Key", *app.Config.Auth.ApiKey)
-		}
-		json.NewEncoder(w).Encode(response)
-
-	})
-
-	http.HandleFunc(fmt.Sprintf("%s/", app.Config.Prefix), func(w http.ResponseWriter, r *http.Request) {
-
-		// if logging is enabled, log the request
-		if app.Config.Logging != nil && *app.Config.Logging {
-			fmt.Printf("%s %s %s\n", r.Method, r.URL.Path, r.Proto)
-		}
-
-		//Global Latency
-		if *app.Config.Latency != 0 {
-			logger.debug("Adding Latency %d ms\n", *app.Config.Latency)
-			time.Sleep(time.Duration(*app.Config.Latency) * time.Millisecond)
-		}
-		//Global Fail Rate
-		if app.Config.FailRate != nil {
-			random := rand.Float64()
-			if random < float64(*app.Config.FailRate) {
-				http.Error(w, `{"error":"Internal server Error"}`, http.StatusInternalServerError)
-				return
-			}
-		}
-
-		if len(app.APIs) == 0 {
-			http.Error(w, `{"error": "No APIs found"}`, http.StatusNotFound)
-			return
-		}
-		//check if the path is in the APIs
-		var found = false
-		for _, api := range app.APIs {
-			if strings.HasPrefix(r.URL.Path, app.Config.Prefix) && matchPath(fmt.Sprint(app.Config.Prefix, api.Path), r) && api.Method == r.Method {
-				//parse the path params
-				if app.Config.Logging != nil && *app.Config.Logging {
-					pathParams, err := parsePathParams(fmt.Sprint(app.Config.Prefix, api.Path), r)
-					if err != nil {
-						logger.err("Error parsing path params: ", err)
-					}
-					fmt.Println("Path Params: ", pathParams)
-				}
-				found = true
-
-				// API-specific latency
-				if api.Latency != nil && *api.Latency != 0 {
-					logger.debug("Adding Latency %d ms\n", *api.Latency)
-					time.Sleep(time.Duration(*api.Latency) * time.Millisecond)
-				}
-
-				// API-specific fail rate
-				if api.FailRate != nil && *api.FailRate != 0 {
-					random := rand.Float64()
-					if random < *api.FailRate {
-						http.Error(w, `{"error":"Internal server Error"}`, http.StatusInternalServerError)
-						return
-					}
-				}
-
-				// Authentication
-				if app.Config.Auth != nil && api.Auth != nil && api.Auth.ProtectedBy != nil && *api.Auth.ProtectedBy != "" {
-					_, err := auth(&app.Config, &api, r)
-					if err != nil {
-						http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
-						return
-					}
-				}
-
-				// Validation
-				if api.Validate != nil {
-					//Query Validation
-					if api.Validate.Query != nil {
-						_, err := validateQuery(*api.Validate.Query, r.URL.Query())
-						if err != nil {
-							http.Error(w, `{"error": "Invalid Query Params"}`, http.StatusBadRequest)
-							return
-						}
-						if app.Config.Logging != nil && *app.Config.Logging {
-							logger.debug("Valid Query Params")
-						}
-					}
-					//Body Validation
-					if api.Validate.Body != nil {
-						_, err := validateBody(*api.Validate.Body, r.Body)
-						if err != nil {
-							http.Error(w, `{"error": "Invalid Body"}`, http.StatusBadRequest)
-							return
-						}
-
-					}
-				}
-				// Response
-				w.Header().Set("Content-Type", "application/json")
-				w.Header().Set("X-Powered-By", "Gobi")
-				//Response Type
-				if api.ResponseType != nil {
-					respType, arg, err := parseValueBwBrackets(*api.ResponseType)
-					if err != nil {
-						http.Error(w, `{"error": "Invalid Response Type"}`, http.StatusBadRequest)
-						return
-					}
-
-					response := []interface{}{}
-					if respType == "Array" {
-						arrLenInt, _ := strconv.Atoi(arg)
-						for i := 0; i < arrLenInt; i++ {
-							response = append(response, ResponseBuilder(api.Response))
-						}
-						json.NewEncoder(w).Encode(response)
-						break
-					}
-				} else {
-					response := ResponseBuilder(api.Response)
-					json.NewEncoder(w).Encode(response)
-					break
-				}
-			}
-		}
-		if !found {
-			http.Error(w, `{"error": "API not found"}`, http.StatusNotFound)
-		}
-
-	})
+	go startServer(&app)
+	app.Config.Port = findValidPort(app.Config.Port)
+	logger.info("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
+	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
 }
