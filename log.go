@@ -1,40 +1,49 @@
 package main
 
 import (
-	"fmt"
+	"time"
 
 	"github.com/mattn/go-colorable"
+	"github.com/sirupsen/logrus"
 )
 
-// LoggerStruct defines the structure for the logger
+// LoggerStruct represents the structured logger
 type LoggerStruct struct {
-	info  func(string, ...interface{})
-	warn  func(string, ...interface{})
-	err   func(string, ...interface{})
-	debug func(string, ...interface{})
+	info  func(msg string, args ...interface{})
+	warn  func(msg string, args ...interface{})
+	err   func(msg string, args ...interface{})
+	debug func(msg string, args ...interface{})
 }
 
-// Logger creates a new LoggerStruct instance
-func Logger(condition bool) *LoggerStruct {
+// Logger initializes and returns a LoggerStruct
+func (app *App) Logger() *LoggerStruct {
+	logger := logrus.New()
+	logger.SetOutput(colorable.NewColorableStdout())
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: time.RFC3339,
+		ForceColors:     true,
+	})
+
 	return &LoggerStruct{
 		info: func(msg string, args ...interface{}) {
-			if condition {
-				colorable.NewColorableStdout().Write([]byte(fmt.Sprintf("\033[1;34mINFO: "+msg+"\033[0m\n", args...))) // Blue
+			if app.Config.Logging != nil && *app.Config.Logging {
+				logger.Infof(msg, args...)
 			}
 		},
 		warn: func(msg string, args ...interface{}) {
-			if condition {
-				colorable.NewColorableStdout().Write([]byte(fmt.Sprintf("\033[1;33mWARN: "+msg+"\033[0m\n", args...))) // Yellow
+			if app.Config.Logging != nil && *app.Config.Logging {
+				logger.Warnf(msg, args...)
 			}
 		},
 		err: func(msg string, args ...interface{}) {
-			if condition {
-				colorable.NewColorableStderr().Write([]byte(fmt.Sprintf("\033[1;31mERROR: "+msg+"\033[0m\n", args...))) // Red
+			if app.Config.Logging != nil && *app.Config.Logging {
+				logger.Errorf(msg, args...)
 			}
 		},
 		debug: func(msg string, args ...interface{}) {
-			if condition {
-				colorable.NewColorableStdout().Write([]byte(fmt.Sprintf("\033[1;36mDEBUG: "+msg+"\033[0m\n", args...))) // Cyan
+			if app.Config.Logging != nil && *app.Config.Logging {
+				logger.Debugf(msg, args...)
 			}
 		},
 	}

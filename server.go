@@ -59,14 +59,11 @@ func startServer(app *App) {
 
 	http.HandleFunc(fmt.Sprintf("%s/", app.Config.Prefix), func(w http.ResponseWriter, r *http.Request) {
 
-		// if logging is enabled, log the request
-		if app.Config.Logging != nil && *app.Config.Logging {
-			fmt.Printf("%s %s %s\n", r.Method, r.URL.Path, r.Proto)
-		}
+		logger.info("%s %s\n", r.Method, r.URL.Path)
 
 		//Global Latency
 		if *app.Config.Latency != 0 {
-			logger.debug("Adding Latency %d ms\n", *app.Config.Latency)
+			logger.info("Adding global Latency %d ms\n", *app.Config.Latency)
 			time.Sleep(time.Duration(*app.Config.Latency) * time.Millisecond)
 		}
 		//Global Fail Rate
@@ -87,18 +84,17 @@ func startServer(app *App) {
 		for _, api := range app.APIs {
 			if strings.HasPrefix(r.URL.Path, app.Config.Prefix) && matchPath(fmt.Sprint(app.Config.Prefix, api.Path), r) && api.Method == r.Method {
 				//parse the path params
-				if app.Config.Logging != nil && *app.Config.Logging {
-					pathParams, err := parsePathParams(fmt.Sprint(app.Config.Prefix, api.Path), r)
-					if err != nil {
-						logger.err("Error parsing path params: ", err)
-					}
-					fmt.Println("Path Params: ", pathParams)
-				}
+				// pathParams, err := parsePathParams(fmt.Sprint(app.Config.Prefix, api.Path), r)
+				// if err != nil {
+				// 	logger.err("Error parsing path params: ", err)
+				// }
+				// logger.info("Path Params: ", string(pathParams))
+
 				found = true
 
 				// API-specific latency
 				if api.Latency != nil && *api.Latency != 0 {
-					logger.debug("Adding Latency %d ms\n", *api.Latency)
+					logger.info("Adding path Latency %d ms\n", *api.Latency)
 					time.Sleep(time.Duration(*api.Latency) * time.Millisecond)
 				}
 
@@ -126,20 +122,23 @@ func startServer(app *App) {
 					if api.Validate.Query != nil {
 						_, err := validateQuery(*api.Validate.Query, r.URL.Query())
 						if err != nil {
+							logger.err("Invalid Query Params")
 							http.Error(w, `{"error": "Invalid Query Params"}`, http.StatusBadRequest)
 							return
 						}
-						if app.Config.Logging != nil && *app.Config.Logging {
-							logger.debug("Valid Query Params")
-						}
+
+						logger.info("Valid Query Params")
+
 					}
 					//Body Validation
 					if api.Validate.Body != nil {
 						_, err := validateBody(*api.Validate.Body, r.Body)
 						if err != nil {
+							logger.err("Invalid Query Params")
 							http.Error(w, `{"error": "Invalid Body"}`, http.StatusBadRequest)
 							return
 						}
+						logger.debug("Valid Body ")
 
 					}
 				}

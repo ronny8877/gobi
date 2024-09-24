@@ -66,9 +66,7 @@ type App struct {
 
 var defaultLatency = 0
 var defaultFailRate = float32(0.0)
-var defaultPort = 8080
-var defaultLogging = false
-var filename = "api.gobi.json"
+var defaultLogging = true
 
 var defaultConfig = AppConfig{
 	Prefix:   "/api",
@@ -78,9 +76,13 @@ var defaultConfig = AppConfig{
 	FailRate: &defaultFailRate, // Optional field        // Optional field
 }
 
-var logger = Logger(true)
+var app App = App{
+	Config: defaultConfig,
+	APIs:   []API{},
+}
+var logger = app.Logger()
 
-func loadAppConfig(app *App) error {
+func (app *App) loadAppConfig(filename string) error {
 	// Read the file
 	file, err := os.ReadFile(filename)
 	if err != nil {
@@ -92,36 +94,19 @@ func loadAppConfig(app *App) error {
 		return fmt.Errorf("error: %s is empty", filename)
 	}
 
-	// Create a new instance of AppInput
-	var newApp App
-
 	// Unmarshal the JSON into the new instance
-	err = json.Unmarshal(file, &newApp)
+	err = json.Unmarshal(file, &app)
+
 	if err != nil {
 		return fmt.Errorf("error parsing JSON")
 	}
 
-	// Copy the values from the new instance to the existing app instance
-	*app = newApp
-
-	// Set default values if necessary
-	if int(app.Config.Port) == 0 {
-		app.Config.Port = defaultPort
-	}
-
-	if app.Config.Prefix == "" {
-		app.Config.Prefix = defaultConfig.Prefix
-	}
-
-	if app.Config.Latency == nil {
-		app.Config.Latency = defaultConfig.Latency
-	}
 	logger.info("config loaded successfully")
 
 	return nil
 }
 
-func watchConfigFile(filename string, app *App) {
+func (app *App) watchConfigFile(filename string) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal("Error creating watcher:", err)
@@ -140,7 +125,10 @@ func watchConfigFile(filename string, app *App) {
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					logger.info("Config file modified, reloading...")
 					time.Sleep(100 * time.Millisecond) // Add a small delay before reloading as the it was crashing without it
-					if err := loadAppConfig(app); err != nil {
+					app.Config = defaultConfig
+					app.APIs = []API{}
+					app.Ref = nil
+					if err := app.loadAppConfig(filename); err != nil {
 						logger.err("Error reloading config: ", err)
 					}
 				}
@@ -159,8 +147,6 @@ func watchConfigFile(filename string, app *App) {
 	}
 	<-done
 }
-
-var app App
 
 func main() {
 	// Channel to signal when the Bubble Tea interface has completed
@@ -190,6 +176,7 @@ func main() {
 }
 
 func serverSetup() {
+	filename := "api.gobi.json"
 	path := config.Active
 	if path == "" {
 		path = path + "/api.gobi.json"
@@ -197,8 +184,11 @@ func serverSetup() {
 	}
 	filename = path
 	// Load the configuration
-	loadAppConfig(&app)
-	go watchConfigFile(filename, &app)
+	if err := app.loadAppConfig(filename); err != nil {
+		logger.err("Error loading config: ", err)
+		return
+	}
+	go app.watchConfigFile(filename)
 
 	go startServer(&app)
 	logger.info("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)

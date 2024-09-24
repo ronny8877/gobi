@@ -651,7 +651,7 @@ func updateFilesList(path string) {
 }
 
 func welcomeMessage() string {
-	asciiArt := figure.NewFigure("Welcome to Gobi!", "", true).String()
+	asciiArt := figure.NewFigure("Gobi!", "", true).String()
 	var style = lipgloss.NewStyle().
 		Bold(true).
 		BorderStyle(lipgloss.RoundedBorder()).
