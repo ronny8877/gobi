@@ -4,6 +4,10 @@ A simple mock server that allows users to fine-grain control over the mock data.
 
 This is my first program in Go, and I am enjoying the language. A mock server is what I needed, so as my introduction to Go, I decided to make it in Go.
 
+<img src="./images/start.png">
+
+Run the app create new or open by providing the path to json file. Whatever you do the file is saved and you can open again from  `Select from List` 
+
 # I AM DA COOK
 
 ## Features
@@ -20,7 +24,13 @@ This is my first program in Go, and I am enjoying the language. A mock server is
 Either download the binary from the releases or build it yourself.  :) 
 
 ## Usage
-The app is simple, It needs a json file named <b>api.json</b> to be present in the same directory as the binary. If the file is not present we'll create a new Empty file The json file should have the following structure:
+The app is simple, It needs a json file named `anyname.gobi.json` 
+ You can choose from the options in create new 
+ <img src="./images/menu.png">
+
+you can also provide path when creating a new file.
+
+`D:\Projects\gobi\example.gobi.json`
 
 ```json
 {
