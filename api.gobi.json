@@ -1,25 +1,38 @@
 {
-        "config": {
-            "Port": 8080,
-            "logging": true,
-            "latency": 1000
+    "config": {
+        "Port": 8080,
+        "logging": true,
+        "latency": 1000
+    },
+    "ref": {
+        "collections":{
+            "title": "Company()",
+            "description": "Lorem(type=sentences)",
+            "isPublic": "Bool()",
+            "tags": "Array(type=User(username),len=3)",
+            "created_at": "Time(unixNano)",
+            "items": "Int(min=0,max=100)",
+            "id": "Uuid()",
+            "theme": "Color(hex)"
         },
-        "ref": {},
-        "api": [
-            {
-                "path": "/collections/:id",
-                "method": "GET",
-                "response":{
-                    
-                    "title": "Company()",
-                    "description": "Lorem(type=sentences)",
-                    "isPublic": "Bool()",
-                    "tags": "Array(type=User(username),len=3)",
-                    "created_at": "Time(unixNano)",
-                    "collection_items": "Int(min=0,max=100)",
-                    "id": "Uuid()",
-                    "collection_color": "Color(hex)"
-                }
+        "users": {
+            "username": "User()",
+            "email": "User(email)",
+            "password": "User(password)",
+            "id": "Uuid()",
+            "created_at": "Time(unixNano)",
+            "collections": "Array(type=Company(),len=3)"
+        }
+    },
+    "api": [
+        {
+            "path": "/user/:collection_id",
+            "method": "GET",
+            "response":{
+                "collections":"Array(type=Ref(ref.collections),len=3)",
+                "user":"Ref(ref.users)",
+                "created_at": "Time(unixNano)"
             }
-        ]
-    }
+        }
+    ]
+}
