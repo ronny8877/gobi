@@ -150,6 +150,7 @@ func (app *App) watchConfigFile(filename string) {
 }
 
 func main() {
+
 	// Channel to signal when the Bubble Tea interface has completed
 	done := make(chan error, 1)
 

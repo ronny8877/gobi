@@ -3,24 +3,22 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/list"
 	"github.com/charmbracelet/log"
 	"github.com/common-nighthawk/go-figure"
 )
 
-var defaultConfigFilename = "config.json"
+var defaultConfigFilename = "gobi.config.json"
 
 var (
 	textStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("211"))
@@ -35,26 +33,24 @@ var (
 )
 
 type model struct {
-	Screen               string
-	Choices              []string
-	Index                int
-	Chosen               string
-	Loading              bool
-	ConfigLoaded         bool
-	Quitting             bool
-	Progress             float64
-	Help                 help.Model
-	Error                error
-	Spinner              spinner.Model
-	Cursor               int
-	TextInput            textinput.Model
-	IsInputValid         bool
-	CreateNewOptions     []string
-	SelectedFile         string
-	StartServer          bool
-	ShouldSHowFilePicker bool
-	InputErrorMessage    string
-	Table                table.Model
+	Screen            string
+	Choices           []string
+	Index             int
+	Chosen            string
+	Loading           bool
+	ConfigLoaded      bool
+	Quitting          bool
+	Help              help.Model
+	Error             error
+	Spinner           spinner.Model
+	Cursor            int
+	TextInput         textinput.Model
+	IsInputValid      bool
+	CreateNewOptions  []string
+	SelectedFile      string
+	StartServer       bool
+	InputErrorMessage string
+	Table             table.Model
 }
 
 type Config struct {
@@ -62,7 +58,10 @@ type Config struct {
 	Files  []string `json:"files"`
 }
 
-var config Config
+var config Config = Config{
+	Active: "",
+	Files:  []string{},
+}
 
 const (
 	defaultSchema = `{
@@ -113,20 +112,6 @@ type serverSuccessMsg struct {
 }
 
 func initialModel() model {
-	_, err := os.Stat(defaultConfigFilename)
-	if os.IsNotExist(err) {
-		file, ok := os.Create(defaultConfigFilename)
-		if ok != nil {
-			fmt.Println("Error creating config file:", ok)
-			return model{
-				Loading: true,
-				Error:   ok,
-			}
-		}
-		defer file.Close()
-		file.WriteString(`{"files": []}`)
-	}
-
 	h := help.New()
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -136,9 +121,7 @@ func initialModel() model {
 	ti.CharLimit = 256
 	ti.Width = 60
 	ti.CursorStyle = focusedStyle
-	fp := filepicker.New()
-	// fp.CurrentDirectory = "D:\\Code\\gobi\\src\\"
-	fp.AllowedTypes = []string{".json"}
+
 	columns := []table.Column{
 		{Title: "Id", Width: 4},
 		{Title: "File", Width: 25},
@@ -173,7 +156,7 @@ func initialModel() model {
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(m.Spinner.Tick, textinput.Blink)
+	return tea.Batch(m.Spinner.Tick, textinput.Blink, loadConfig)
 }
 
 func navigateMenu(msg tea.Msg, m model, choices []string) (model, tea.Cmd) {
@@ -317,9 +300,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.Screen = "create"
 					return m, nil
 				case "Open Folder":
-					log.Debug("Opening folder")
 					m.Screen = "open"
-					renderFileList()
 				case "Select from List":
 					m.Screen = "list"
 				}
@@ -343,8 +324,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if k == "enter" {
 				if isValidFileName(m.TextInput.Value()) {
 					m.Loading = true
-					doseFileExist := fileExists(m.TextInput.Value())
-					if !doseFileExist {
+					if !fileExists(m.TextInput.Value()) {
 						m.Loading = false
 						m.IsInputValid = false
 						// m.Error = fmt.Errorf("file does not exist")
@@ -355,14 +335,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.Cursor = 0
 					m.IsInputValid = true
 					config.Active = m.SelectedFile
+					m.TextInput.SetValue("")
 					m.StartServer = true
 					m.Screen = ""
-					m.TextInput.SetValue("")
+					return m, tea.Batch(closeCli)
 				} else {
 					m.IsInputValid = false
 				}
-
-				return m, tea.Batch(closeCli)
+				return m, nil
 			}
 			m.TextInput, cmd = m.TextInput.Update(msg)
 			return m, cmd
@@ -532,9 +512,36 @@ func startApp() error {
 }
 
 func loadConfig() tea.Msg {
+	//default cache location
+	homeDir, ok := os.UserHomeDir()
 
+	if ok != nil {
+		fmt.Println("Error getting home directory:", ok)
+		return loadError{ok}
+	}
+	cache := filepath.Join(homeDir, ".cache", "gobi")
 	// Read the config file
-	file, ok := os.ReadFile(defaultConfigFilename)
+
+	// Ensure the cache directory exists
+	makeErr := os.MkdirAll(cache, 0755)
+	if makeErr != nil {
+		tea.Println("Error creating cache directory:", makeErr)
+		return loadError{makeErr}
+	}
+	// Define the config file path
+	configFilePath := filepath.Join(cache, defaultConfigFilename)
+
+	//CHECK IF CONFIG FILE EXISTS
+	if !fileExists(configFilePath) {
+		// Create the config file if it doesn't exist
+		createErr := createDefaultConfigFile(configFilePath)
+		if createErr != nil {
+			tea.Println("Error creating config file:", createErr)
+			return loadError{createErr}
+		}
+	}
+
+	file, ok := os.ReadFile(configFilePath)
 	if ok != nil {
 		tea.Println("Error reading config file:", ok)
 		return loadError{ok}
@@ -543,8 +550,7 @@ func loadConfig() tea.Msg {
 	// Check if the file is empty
 	if len(file) == 0 {
 		tea.Println("Error: Config file is empty")
-		createDefaultConfigFile("")
-		return loadSuccess{}
+		return loadError{}
 	}
 
 	err := json.Unmarshal(file, &config)
@@ -557,51 +563,59 @@ func loadConfig() tea.Msg {
 
 }
 
-func formatFileNames() []string {
-	var files []string
-	for _, file := range config.Files {
-		//Extreact file from path
-		file = strings.Split(file, "/")[1]
-		files = append(files, file)
-	}
-	return files
-}
-
-func renderFileList() {
-	enumeratorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("99")).MarginRight(1)
-	itemStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("212")).MarginRight(1)
-	list := list.New(formatFileNames()).Enumerator(list.Bullet).EnumeratorStyle(enumeratorStyle).ItemStyle(itemStyle)
-	var style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	fmt.Println(style.Render("Files in the current directory:"))
-	fmt.Println(list)
-}
-
 // Function to create a file
 func createDefaultConfigFile(path string) error {
-	if path == "" {
-		path = "./" + defaultConfigFilename
+	defaultConfig := Config{
+		Active: "",
+		Files:  []string{},
 	}
-	f, err := os.Create(path)
+	// Marshal the default config to JSON
+	data, err := json.MarshalIndent(defaultConfig, "", "  ")
 	if err != nil {
+		fmt.Println("Error marshalling default config:", err)
 		return err
 	}
-	defer f.Close()
+
+	// Write the default config to the file
+	err = os.WriteFile(path, data, 0644)
+	if err != nil {
+		fmt.Println("Error writing default config file:", err)
+	}
 	return nil
 }
 
 // Function to update the list of files
 func updateFilesList(path string) {
-	// Open config.json and append the new file to the list
-	file, err := os.OpenFile("config.json", os.O_RDWR|os.O_CREATE, 0755)
+	//check if path is just a filename or a path
+	//If you simply do api.gobi.json without providing a path we will have to get the current working directory
+	// I did not plan ahead for this
+	// It was supposed to be a mock server Now as i use the server i feel i should have this or that
+	//Resulting in a lot of changes Well who cares :)
+	if !filepath.IsAbs(path) {
+		// Get the current working directory
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error getting current working directory:", err)
+			return
+		}
+		path = filepath.Join(cwd, path)
+	}
+
+	// Normalize the path to handle different path separators
+	normalizedPath := filepath.Clean(path)
+
+	homeDir, err := os.UserHomeDir()
+
 	if err != nil {
-		fmt.Println("Error opening config file:", err)
+		fmt.Println("Error getting home directory:", err)
 		return
 	}
-	defer file.Close()
+	configFilePath := filepath.Join(homeDir, ".cache", "gobi", defaultConfigFilename)
 
-	// Read the file
-	data, err := ioutil.ReadAll(file)
-	if err != nil {
+	// Read the file as by this point we know it exists
+	//TODO: HANDEL BETTER
+	data, err := os.ReadFile(configFilePath)
+	if err != nil && !os.IsNotExist(err) {
 		fmt.Println("Error reading config file:", err)
 		return
 	}
@@ -617,14 +631,14 @@ func updateFilesList(path string) {
 
 	// Check if the path already exists in the list
 	for _, existingPath := range config.Files {
-		if existingPath == path {
+		if existingPath == normalizedPath {
 			fmt.Println("Path already exists in the config file")
 			return
 		}
 	}
 
 	// Append the new file to the list
-	config.Files = append(config.Files, path)
+	config.Files = append(config.Files, normalizedPath)
 
 	// Marshal the data
 	newData, err := json.MarshalIndent(config, "", "  ")
@@ -633,21 +647,12 @@ func updateFilesList(path string) {
 		return
 	}
 
-	// Truncate the file to ensure we overwrite it
-	if err := file.Truncate(0); err != nil {
-		fmt.Println("Error truncating config file:", err)
+	// Write the data back to the file
+	if err := os.WriteFile(configFilePath, newData, 0755); err != nil {
+		fmt.Println("Error writing config file:", err)
 		return
 	}
 
-	// Write the data back to the file
-	if _, err := file.Seek(0, 0); err != nil {
-		fmt.Println("Error seeking to start of config file:", err)
-		return
-	}
-	if _, err := file.Write(newData); err != nil {
-		fmt.Println("Error writing to config file:", err)
-		return
-	}
 }
 
 func welcomeMessage() string {
