@@ -150,8 +150,6 @@ func (app *App) watchConfigFile(filename string) {
 }
 
 func main() {
-	fmt.Println(os.Getenv("HOME"))
-	fmt.Println(os.Getwd())
 
 	// Channel to signal when the Bubble Tea interface has completed
 	done := make(chan error, 1)
