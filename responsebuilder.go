@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -11,10 +14,22 @@ import (
 )
 
 func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
+	return responseBuilderWithRefs(rawData, app.snapshot().Ref, 0)
+}
+
+func responseBuilderWithRefs(rawData map[string]interface{}, refs *map[string]interface{}, depth int) map[string]interface{} {
+	budget := maxArrayLength
+	return renderResponse(rawData, refs, depth, &budget)
+}
+
+func renderResponse(rawData map[string]interface{}, refs *map[string]interface{}, depth int, budget *int) map[string]interface{} {
+	if depth >= 32 || *budget <= 0 {
+		return map[string]interface{}{"error": "maximum generator depth or budget exceeded"}
+	}
+	*budget--
 	var response map[string]interface{}
-	//LOL FUNNY FIX
-	seed := time.Now().UnixNano()
-	source := rand.NewSource(seed + rand.Int63())
+	// Each response owns its random source so concurrent requests cannot race.
+	source := rand.NewPCG(rand.Uint64(), rand.Uint64())
 	fake := faker.NewWithSeed(source)
 	funcMap := map[string]func(*string) interface{}{
 		"Address": func(args *string) interface{} {
@@ -112,7 +127,7 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 					"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/114.0.0.0 Safari/537.36",
 					"Mozilla/5.0 (Linux; Android 10; SM-G960U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
 					"Mozilla/5.0 (Linux; Android 12; SM-T820) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"}
-				return userAgent[rand.Intn(len(userAgent))]
+				return userAgent[rand.IntN(len(userAgent))]
 
 			case *args == "sqlId":
 				// return an integer between 1 and 100000
@@ -156,18 +171,7 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			case *args == "gamerTag":
 				return fake.Gamer().Tag()
 			case *args == "birthday":
-				rand.Seed(time.Now().UnixNano())
-
-				// TODO ChAT GPT CODE DEBUG LATER
-				years := rand.Intn(21) - 10
-				months := rand.Intn(25) - 12
-				days := rand.Intn(61) - 30
-
-				// Add the random values to the current date
-				randomDate := time.Now().AddDate(years, months, days)
-
-				// Return the random date
-				return randomDate
+				return time.Now().AddDate(-fake.IntBetween(1, 100), 0, -fake.IntBetween(0, 364)).Format("2006-01-02")
 			case *args == "image":
 				return fmt.Sprintf("https://randomuser.me/api/portraits/med/men/%d.jpg", fake.RandomDigit())
 			default:
@@ -215,6 +219,12 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			}
 			if val, ok := parsedArgs["len"]; ok {
 				len, _ = strconv.Atoi(val)
+				if len < 0 {
+					len = 0
+				}
+				if len > maxArrayLength {
+					len = maxArrayLength
+				}
 			}
 			if val, ok := parsedArgs["type"]; ok {
 				Ltype = val
@@ -270,12 +280,24 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			if val, ok := parsedArgs["max"]; ok {
 				max, _ = strconv.Atoi(val)
 			}
+			if min > max {
+				min, max = max, min
+			}
 			return fake.Int64Between(int64(min), int64(max))
 		},
 		"Float": func(args *string) interface{} {
 			min, max, precision := 0, 1000, 3
 
 			if args == nil {
+				if min > max {
+					min, max = max, min
+				}
+				if precision < 0 {
+					precision = 0
+				}
+				if precision > 15 {
+					precision = 15
+				}
 				return fake.Float64(precision, min, max)
 			}
 
@@ -293,6 +315,15 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			if val, ok := parsedArgs["precision"]; ok {
 				precision, _ = strconv.Atoi(val)
 			}
+			if min > max {
+				min, max = max, min
+			}
+			if precision < 0 {
+				precision = 0
+			}
+			if precision > 15 {
+				precision = 15
+			}
 			return fake.Float64(precision, min, max)
 		},
 		"Bool": func(args *string) interface{} {
@@ -309,12 +340,12 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 		"Array": func(args *string) interface{} {
 			var alen int
 			var dataType string
-			var result []interface{}
+			result := make([]interface{}, 0)
 			alen = 5
 			dataType = "User()"
 
 			if *args == "" {
-				for i := 0; i < alen; i++ {
+				for i := 0; i < alen && *budget > 0; i++ {
 					result = append(result, fake.Lorem().Word())
 				}
 				return result
@@ -326,11 +357,17 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			}
 			if val, ok := pargs["len"]; ok {
 				alen, _ = strconv.Atoi(val)
+				if alen < 0 {
+					alen = 0
+				}
+				if alen > maxArrayLength {
+					alen = maxArrayLength
+				}
 			}
 			if val, ok := pargs["type"]; ok {
 				dataType = val
 			}
-			for i := 0; i < alen; i++ {
+			for i := 0; i < alen && *budget > 0; i++ {
 				if dataType == "Json()" {
 					result = append(result, fake.Map())
 					continue
@@ -339,16 +376,8 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 					result = append(result, fake.Lorem().Word())
 					continue
 				}
-				response := responseBuilder(map[string]interface{}{"type": dataType})
-				if value, ok := response["type"].(string); ok {
-					result = append(result, value)
-				} else if value, ok := response["type"].(map[string]interface{}); ok {
-					result = append(result, value)
-				} else if value, ok := response["type"].([]interface{}); ok {
-					result = append(result, value)
-				} else {
-					result = append(result, "unexpected_type")
-				}
+				response := renderResponse(map[string]interface{}{"type": dataType}, refs, depth+1, budget)
+				result = append(result, response["type"])
 			}
 			return result
 		},
@@ -373,7 +402,7 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			case *args == "platform":
 				// return a random platform from iOS, Android, web, Mac, Windows, Linux
 				platforms := []string{"iOS", "Android", "web", "Mac", "Windows", "Linux"}
-				return platforms[rand.Intn(len(platforms))]
+				return platforms[rand.IntN(len(platforms))]
 			default:
 				return fake.App().Name()
 			}
@@ -492,10 +521,10 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			case *args == "shapes":
 				return formatAvatarURL(seed, "shapes")
 			case *args == "thumbs":
+				return formatAvatarURL(seed, "thumbs")
 			default:
 				return formatAvatarURL(seed, "adventurer-neutral")
 			}
-			return formatAvatarURL(seed, "adventurer-neutral")
 		},
 		"Placehold": func(args *string) interface{} {
 			var width, height int
@@ -532,7 +561,7 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 					bgColor = val
 				}
 			}
-			return fmt.Sprintf("https://placehold.co/%dx%d/%s/%s?text=%s&font=%s", width, height, color, bgColor, text, font)
+			return fmt.Sprintf("https://placehold.co/%dx%d/%s/%s?text=%s&font=%s", width, height, bgColor, color, url.QueryEscape(text), url.QueryEscape(font))
 
 		},
 		"LoremPicsum": func(args *string) interface{} {
@@ -546,7 +575,7 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 				height = 200
 				blur = 1
 				grayscale = false
-				id = rand.Intn(1000)
+				id = rand.IntN(1000)
 				parsedArgs, err := parseArguments(*args)
 				if err != nil {
 					return err.Error()
@@ -586,27 +615,25 @@ func responseBuilder(rawData map[string]interface{}) map[string]interface{} {
 			if args == nil || *args == "" {
 				return "reference not found"
 			}
-			if app.Ref == nil {
+			if refs == nil {
 				return "reference not defined"
 			}
-
-			ref := strings.Split(*args, ".")
-			// Iterate over the app.Ref map
-			for key, value := range *app.Ref {
-				// Check if the key exists in the ref slice
-				for _, item := range ref {
-					if key == item {
-						// Perform type assertion to ensure value is of type map[string]interface{}
-						if mapValue, ok := value.(map[string]interface{}); ok {
-							return responseBuilder(mapValue)
-						} else {
-							fmt.Println("Type assertion failed for key:", key)
-							return "Type assertion failed"
-						}
-					}
+			path := strings.Split(strings.TrimPrefix(*args, "ref."), ".")
+			var value interface{} = *refs
+			for _, key := range path {
+				object, ok := value.(map[string]interface{})
+				if !ok {
+					return "reference not found"
+				}
+				value, ok = object[key]
+				if !ok {
+					return "reference not found"
 				}
 			}
-			return "reference not found"
+			if object, ok := value.(map[string]interface{}); ok {
+				return renderResponse(object, refs, depth+1, budget)
+			}
+			return value
 
 		},
 	}

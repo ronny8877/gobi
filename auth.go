@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
@@ -14,9 +16,9 @@ func auth(config *AppConfig, api *API, r *http.Request) (bool, error) {
 	switch *api.Auth.ProtectedBy {
 	case "apiKey":
 		return validateAPIKey(config, r)
-	case "bearer":
+	case "bearer", "BearerToken":
 		return validateBearerToken(config, r)
-	case "cookie":
+	case "cookie", "Cookies":
 		return validateCookie(config, r)
 	default:
 		return false, errors.New("unsupported authentication method")
@@ -25,7 +27,7 @@ func auth(config *AppConfig, api *API, r *http.Request) (bool, error) {
 }
 
 func validateAPIKey(config *AppConfig, r *http.Request) (bool, error) {
-	if config.Auth == nil || config.Auth.ApiKey == nil {
+	if config.Auth == nil || config.Auth.ApiKey == nil || *config.Auth.ApiKey == "" {
 		return false, errors.New("API key not configured")
 	}
 	apiKey := r.Header.Get("X-API-Key")
@@ -39,15 +41,15 @@ func validateAPIKey(config *AppConfig, r *http.Request) (bool, error) {
 }
 
 func validateBearerToken(config *AppConfig, r *http.Request) (bool, error) {
-	if config.Auth == nil || config.Auth.BearerToken == nil {
+	if config.Auth == nil || config.Auth.BearerToken == nil || *config.Auth.BearerToken == "" {
 		return false, errors.New("bearer token not configured")
 	}
 	bearerToken := r.Header.Get("Authorization")
 	if bearerToken == "" {
 		return false, errors.New("bearer token is missing")
 	}
-	parts := strings.Split(bearerToken, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" || parts[1] != *config.Auth.BearerToken {
+	parts := strings.Fields(bearerToken)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || parts[1] != *config.Auth.BearerToken {
 		return false, errors.New("bearer token is invalid")
 	}
 	return true, nil
@@ -57,18 +59,13 @@ func validateCookie(config *AppConfig, r *http.Request) (bool, error) {
 	if config.Auth == nil || config.Auth.Cookie == nil {
 		return false, errors.New("cookie not configured")
 	}
-	expectedCookieValue := strings.Split(*config.Auth.Cookie, "=")[1]
-	for _, cookie := range r.Cookies() {
-		if cookie.Name == "auth" {
-			if cookie.Value != expectedCookieValue {
-				return false, errors.New("cookie is invalid")
-			}
-			// TODO: Add more validation for cookie
-			// if cookie.Expires.Before(time.Now()) {
-			// 	return false, errors.New("cookie is expired")
-			// }
-			return true, nil
-		}
+	parts := strings.SplitN(*config.Auth.Cookie, "=", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return false, errors.New("invalid cookie configuration")
 	}
-	return false, errors.New("auth cookie is missing")
+	cookie, err := r.Cookie(parts[0])
+	if err != nil || cookie.Value != parts[1] {
+		return false, errors.New("cookie is invalid or missing")
+	}
+	return true, nil
 }

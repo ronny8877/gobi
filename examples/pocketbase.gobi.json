@@ -1,0 +1,18 @@
+{
+  "config": {
+    "port": 8080,
+    "prefix": "/api",
+    "pocketbase": {
+      "url": "http://127.0.0.1:8090",
+      "tokenEnv": "POCKETBASE_TOKEN"
+    },
+    "auth": { "apiKey": "mock-client-key" }
+  },
+  "api": [
+    { "method": "GET", "path": "/users", "auth": { "protected": true, "protectedBy": "apiKey" }, "pocketbase": { "collection": "users" } },
+    { "method": "POST", "path": "/users", "auth": { "protected": true, "protectedBy": "apiKey" }, "validate": { "body": ["name"] }, "pocketbase": { "collection": "users" } },
+    { "method": "GET", "path": "/users/:id", "auth": { "protected": true, "protectedBy": "apiKey" }, "pocketbase": { "collection": "users" } },
+    { "method": "PATCH", "path": "/users/:id", "auth": { "protected": true, "protectedBy": "apiKey" }, "pocketbase": { "collection": "users" } },
+    { "method": "DELETE", "path": "/users/:id", "auth": { "protected": true, "protectedBy": "apiKey" }, "pocketbase": { "collection": "users" } }
+  ]
+}

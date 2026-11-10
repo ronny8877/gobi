@@ -1,42 +1,35 @@
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"strings"
 )
 
-func validateQuery(query []string, rQuery map[string][]string) (bool, error) {
-	for _, q := range query {
-		if _, ok := rQuery[q]; !ok {
-			return false, fmt.Errorf("object %s is missing", q)
+func validateQuery(query []string, values map[string][]string) (bool, error) {
+	for _, key := range query {
+		if _, ok := values[key]; !ok {
+			return false, fmt.Errorf("query field %s is missing", key)
 		}
 	}
 	return true, nil
 }
-
-func validateBody(body []string, rBody io.ReadCloser) (bool, error) {
-	defer rBody.Close()
-	//TODO: Add validators Like
-	// UUID()
-	//String()
-	//Email()
-	//URL()
-	// Read the body content
-	bodyContent, err := ioutil.ReadAll(rBody)
-	if err != nil {
-		return false, fmt.Errorf("failed to read request body: %v", err)
+func validateBody(required []string, body io.ReadCloser) (bool, error) {
+	defer body.Close()
+	var object map[string]json.RawMessage
+	decoder := json.NewDecoder(io.LimitReader(body, maxBodyBytes+1))
+	if err := decoder.Decode(&object); err != nil || object == nil {
+		return false, fmt.Errorf("body must be a JSON object")
 	}
-
-	bodyString := string(bodyContent)
-
-	// Check if each required field is present in the body content
-	for _, b := range body {
-		if !strings.Contains(bodyString, b) {
-			return false, fmt.Errorf("object %s is missing", b)
+	if decoder.Decode(new(any)) != io.EOF {
+		return false, fmt.Errorf("body must contain one JSON object")
+	}
+	for _, key := range required {
+		if _, ok := object[key]; !ok {
+			return false, fmt.Errorf("body field %s is missing", key)
 		}
 	}
-
 	return true, nil
 }

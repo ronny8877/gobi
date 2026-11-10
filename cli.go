@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
@@ -197,18 +199,12 @@ func checkIfPathExists(path string) bool {
 }
 
 func createApiFile(choice int, m model) error {
-	file, err := os.Create(m.TextInput.Value())
-	if err != nil {
-		fmt.Println("Error creating file:", err)
-		return err
+	schemas := []string{defaultSchema, defaultSchemaWithConfig, defaultSchemaWithExample}
+	if choice < 0 || choice >= len(schemas) {
+		return fmt.Errorf("invalid template choice %d", choice)
 	}
-	switch choice {
-	case 0:
-		file.WriteString(defaultSchema)
-	case 1:
-		file.WriteString(defaultSchemaWithConfig)
-	case 2:
-		file.WriteString(defaultSchemaWithExample)
+	if err := os.WriteFile(m.TextInput.Value(), []byte(schemas[choice]), 0600); err != nil {
+		return fmt.Errorf("create API file: %w", err)
 	}
 	return nil
 }
@@ -550,7 +546,7 @@ func loadConfig() tea.Msg {
 	// Check if the file is empty
 	if len(file) == 0 {
 		tea.Println("Error: Config file is empty")
-		return loadError{}
+		return loadError{fmt.Errorf("config file is empty")}
 	}
 
 	err := json.Unmarshal(file, &config)
@@ -579,7 +575,7 @@ func createDefaultConfigFile(path string) error {
 	// Write the default config to the file
 	err = os.WriteFile(path, data, 0644)
 	if err != nil {
-		fmt.Println("Error writing default config file:", err)
+		return fmt.Errorf("write default config: %w", err)
 	}
 	return nil
 }
@@ -648,7 +644,7 @@ func updateFilesList(path string) {
 	}
 
 	// Write the data back to the file
-	if err := os.WriteFile(configFilePath, newData, 0755); err != nil {
+	if err := os.WriteFile(configFilePath, newData, 0600); err != nil {
 		fmt.Println("Error writing config file:", err)
 		return
 	}
