@@ -1,0 +1,79 @@
+---
+title: PocketBase persistence
+description: Keep records between requests and server restarts with an optional, separately managed PocketBase service.
+---
+
+## Choose persistence when you need it
+
+Regular Gobi routes generate fresh mock responses. They do not store POST or PATCH bodies. The PocketBase adapter forwards opted-in routes to a persistent record collection instead.
+
+PocketBase owns the collection schema, access rules and stored data. Preserve and back up its `pb_data` directory.
+
+## Connect the backend
+
+Create a base collection in PocketBase, for example `demo_users`, with a text field named `name`. Configure access rules for your intended use. Add its URL and, optionally, an environment variable holding a valid backend auth token:
+
+```json
+{
+  "config": {
+    "pocketbase": {
+      "url": "http://127.0.0.1:8090",
+      "tokenEnv": "POCKETBASE_TOKEN"
+    }
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/users",
+      "pocketbase": { "collection": "demo_users" }
+    },
+    {
+      "method": "POST",
+      "path": "/users",
+      "pocketbase": { "collection": "demo_users" }
+    },
+    {
+      "method": "GET",
+      "path": "/users/:id",
+      "pocketbase": { "collection": "demo_users" }
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/:id",
+      "pocketbase": { "collection": "demo_users" }
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/:id",
+      "pocketbase": { "collection": "demo_users" }
+    }
+  ]
+}
+```
+
+```sh
+export POCKETBASE_TOKEN='your-backend-token'
+./gobi -config api.gobi.json
+curl -H 'Content-Type: application/json' \
+  -d '{"name":"Ronny"}' http://localhost:8080/api/users
+```
+
+The example has no Gobi mock authentication; keep it local or use your deployment's access controls. If PocketBase permits unauthenticated access, `tokenEnv` can be omitted. Tokens are not automatically acquired or refreshed.
+
+## Supported operations
+
+| Route        | Method | Operation       |
+| ------------ | ------ | --------------- |
+| `/users`     | GET    | Paginated list  |
+| `/users`     | POST   | Create a record |
+| `/users/:id` | GET    | Read a record   |
+| `/users/:id` | PATCH  | Update a record |
+| `/users/:id` | DELETE | Delete a record |
+
+Query parameters `page`, `perPage`, `sort`, `filter`, `expand`, `fields`, and `skipTotal` are supported. PocketBase JSON bodies and status codes pass through. Gobi auth, validation, latency and failure settings still run before the backend request. `response` and `responseType` are unused for these routes.
+
+## Scope and deployment
+
+Use a reachable container service hostname instead of `127.0.0.1` when the services run in different containers. The adapter uses one backend service identity; scope its privileges to the intended collections. It is not per-user PocketBase authentication.
+
+Automatic schema creation, collection management, file uploads, realtime subscriptions, and token refresh are not supported by this adapter. See the [PocketBase API reference](https://pocketbase.io/docs/api-records/) for backend details.

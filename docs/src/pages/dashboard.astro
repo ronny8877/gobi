@@ -1,0 +1,22 @@
+---
+import Base from '../layouts/Base.astro';
+import Dashboard from '../components/Dashboard.svelte';
+---
+
+<Base title="Dashboard demo">
+  <div class="wrap">
+    <header class="page-head">
+      <h1 class="page-title">Mock data. Working dashboard.</h1>
+      <p class="lede">
+        A Svelte storefront dashboard powered by the JSON your Gobi server
+        sends.
+      </p>
+    </header>
+    <Dashboard client:load />
+    <noscript>
+      <p class="notice">
+        Enable JavaScript to fetch and explore dashboard data.
+      </p>
+    </noscript>
+  </div>
+</Base>

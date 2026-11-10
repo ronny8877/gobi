@@ -1,0 +1,127 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+---
+
+<Base title="Mock APIs, made yours">
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <h1>
+          Your frontend.
+          <br />
+          Your data.
+          <br />
+          <span>Your rules.</span>
+        </h1>
+        <p>
+          A small Go server that turns JSON templates into working mock APIs.
+          Shape the data you need, before the backend is ready.
+        </p>
+        <div class="actions">
+          <a class="button" href="/docs/quick-start/">
+            Start building <Icon size={17} />
+          </a>
+          <a class="button secondary" href="/playground/">
+            Try the playground
+          </a>
+        </div>
+        <div class="install-line">
+          <code>go build -o gobi .</code>
+          <span>Free & open source · MIT</span>
+        </div>
+      </div>
+      <div class="hero-demo">
+        <div class="code-panel">
+          <div class="panel-head">
+            <span>api.gobi.json</span>
+            <span class="mono text-[10px]">Template</span>
+          </div>
+          <pre><code>{`{
+  "ref": {
+    "user": {
+      "name": "User()",
+      "email": "User(email)"
+    }
+  },
+  "api": [{
+    "method": "GET",
+    "path": "/team",
+    "response": {
+      "people": "Array(len=3,type=Ref(ref.user))"
+    }
+  }]
+}`}</code></pre>
+        </div>
+        <div class="demo-result">
+          <div class="flex justify-between items-center">
+            <strong>
+              <span class="method">GET</span> /api/team
+            </strong>
+            <span class="status sample">Illustrative response</span>
+          </div>
+          <dl>
+            <dt>people[0]</dt>
+            <dd>Alex Morgan</dd>
+            <dt>email</dt>
+            <dd>alex@example.com</dd>
+            <dt>people[1]</dt>
+            <dd>Jordan Lee</dd>
+          </dl>
+        </div>
+      </div>
+    </section>
+    <section class="home-section">
+      <h2>A schema in. An API out.</h2>
+      <p class="text-muted text-[15px] max-w-2xl">
+        Define the shape once. Generate names, numbers, dates, nested arrays and
+        reusable objects on every request. Your frontend talks to ordinary HTTP
+        endpoints.
+      </p>
+      <picture>
+        <source
+          media="(max-width: 760px)"
+          srcset="/images/schema-flow-mobile.svg"
+          width="360"
+          height="510"
+        />
+        <img
+          class="home-flow"
+          src="/images/schema-flow.svg"
+          width="1000"
+          height="220"
+          alt="A JSON schema flows through the Gobi Go server into your frontend as an HTTP JSON response."
+        />
+      </picture>
+    </section>
+    <section class="home-section">
+      <h2>Read it. Try it. Make it yours.</h2>
+      <div class="feature-links">
+        <a class="feature-link" href="/docs/quick-start/">
+          <Icon name="book" size={25} />
+          <h3>A guide that gets to the point</h3>
+          <p>
+            From your first endpoint to arrays, references, authentication and
+            persistent records.
+          </p>
+        </a>
+        <a class="feature-link" href="/dashboard/">
+          <Icon name="chart" size={25} />
+          <h3>Real requests, visible results</h3>
+          <p>
+            A working Svelte dashboard. See how a Gobi schema becomes charts,
+            totals and customer rows.
+          </p>
+        </a>
+        <a class="feature-link" href="/builder/">
+          <Icon name="layers" size={25} />
+          <h3>Start with a schema builder</h3>
+          <p>
+            Choose your fields, tune response behavior, and export a complete
+            .gobi.json file.
+          </p>
+        </a>
+      </div>
+    </section>
+  </div>
+</Base>

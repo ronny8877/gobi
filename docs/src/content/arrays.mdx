@@ -1,0 +1,66 @@
+---
+title: Arrays
+description: Repeat an entire response, generate a list of typed values, or expand reusable objects into a collection.
+---
+
+## Return an array of objects
+
+Set `responseType` on a route. Every item independently evaluates the response template.
+
+```json
+{
+  "method": "GET",
+  "path": "/users",
+  "responseType": "Array(6)",
+  "response": {
+    "id": "Uuid()",
+    "name": "User()",
+    "email": "User(email)"
+  }
+}
+```
+
+`GET /api/users` returns an array of six objects. `Array(0)` returns an empty JSON array, not null. Route array lengths must be integers from **0 to 10000**.
+
+## Generate a field-level array
+
+Use the `Array` generator inside a response when the list is one field among others:
+
+```json
+{
+  "response": {
+    "emails": "Array(len=3,type=User(email))",
+    "scores": "Array(len=4,type=Int(min=1,max=100))",
+    "flags": "Array(len=2,type=Bool(true))"
+  }
+}
+```
+
+Emails are strings, scores are numbers, and flags are booleans. `Array()` produces five generated words. `len` changes the number of items and `type` chooses their generator.
+
+## Arrays of reusable objects
+
+```json
+{
+  "ref": {
+    "member": { "id": "Uuid()", "name": "User()" }
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/team",
+      "response": {
+        "members": "Array(len=4,type=Ref(ref.member))"
+      }
+    }
+  ]
+}
+```
+
+Each member gets its own generated ID and name. Ref reuses the template, not a previously generated object.
+
+## Bounds and nested work
+
+Field-level array lengths are bounded to 10000. Deeply nested arrays and references also share a generation-work budget and depth limit. Cyclic references stop with a diagnostic object instead of recurring indefinitely. Keep examples small enough to inspect in your frontend.
+
+Try the **Arrays** example in the [playground](/playground/) or enable **Return an array** in the [builder](/builder/).

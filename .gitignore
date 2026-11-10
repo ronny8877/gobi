@@ -3,3 +3,8 @@
 /coverage.out
 .env
 /pb_data/
+/docs/node_modules/
+/docs/dist/
+/docs/.astro/
+/docs/test-results/
+/docs/playwright-report/

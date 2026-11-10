@@ -227,3 +227,42 @@ func TestValidateBodyReadError(t *testing.T) {
 		t.Fatal("accepted empty body")
 	}
 }
+
+func TestDocsDemoResponses(t *testing.T) {
+	a := new(App)
+	if err := a.loadAppConfig("examples/docs-demo.gobi.json"); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/api/users", "/api/profile", "/api/metrics", "/api/dashboard"} {
+		w := request(a, "GET", path, "")
+		if w.Code != 200 || !json.Valid(w.Body.Bytes()) {
+			t.Fatalf("%s: %d %s", path, w.Code, w.Body)
+		}
+		if strings.Contains(w.Body.String(), "reference not") || strings.Contains(w.Body.String(), "unexpected_type") {
+			t.Fatalf("unexpanded demo data: %s", w.Body)
+		}
+	}
+	w := request(a, "GET", "/api/dashboard", "")
+	var data struct {
+		Customers []map[string]any `json:"customers"`
+		Series    []map[string]any `json:"series"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &data); err != nil {
+		t.Fatal(err)
+	}
+	if len(data.Customers) != 5 || len(data.Series) != 7 {
+		t.Fatal("wrong dashboard dimensions")
+	}
+	if _, ok := data.Series[0]["visits"].(float64); !ok {
+		t.Fatal("chart data is not numeric")
+	}
+	if _, ok := data.Customers[0]["name"].(string); !ok {
+		t.Fatal("customer name missing")
+	}
+	if w := request(a, "POST", "/api/events", `{"name":"page_view"}`); w.Code != 200 {
+		t.Fatal(w.Code, w.Body)
+	}
+	if w := request(a, "POST", "/api/events", `{}`); w.Code != 400 {
+		t.Fatal(w.Code, w.Body)
+	}
+}

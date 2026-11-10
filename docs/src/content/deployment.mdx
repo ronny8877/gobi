@@ -1,0 +1,66 @@
+---
+title: Deploy & develop
+description: Run the Astro docs and Svelte demos locally, or serve the complete demo stack using Docker Compose.
+---
+
+## Local development
+
+The site uses Astro, Markdown/MDX, Svelte 5 and Tailwind CSS 4. Use Node 24 and npm. From the repository root:
+
+```sh
+go build -o gobi .
+./gobi -config examples/docs-demo.gobi.json
+```
+
+In a second terminal:
+
+```sh
+cd docs
+npm ci
+npm run dev
+```
+
+Open `http://localhost:4321`. The dev server forwards `/gobi-api/*` to `http://127.0.0.1:8080/*`. Choose **Live Gobi server** in a demo to make actual HTTP requests. The source selector defaults to sample fixtures so the site also works without Go.
+
+## Docker Compose
+
+From the repository root:
+
+```sh
+docker compose -f compose.docs.yml up --build -d
+```
+
+Open `http://localhost:4321`. Nginx serves the built static site and proxies `/gobi-api/` to the Gobi container. The backend is on the internal container network; no separate browser CORS configuration is needed.
+
+```sh
+docker compose -f compose.docs.yml down
+```
+
+The compose example binds to loopback for local use. For Coolify, deploy the compose services and attach your domain to the `docs` service's port 80 using your normal proxy and access settings. Do not use a remote host's loopback URL on your own PC.
+
+## Static hosting
+
+```sh
+cd docs
+npm ci
+npm run build
+```
+
+Publish `docs/dist` on a static host. Guides, the builder and sample fixtures work without a backend. Live demos require a reachable Gobi server through a same-origin proxy or an explicitly configured CORS proxy. Gobi does not enable cross-origin access automatically. HTTPS pages may block requests to an HTTP backend.
+
+## Edit the docs
+
+Guides live in `docs/src/content/*.mdx`. Frontmatter supplies `title` and `description`; headings populate the contents rail. Add new guide links in `docs/src/lib/navigation.ts`. Svelte islands in `docs/src/components` power the interactive pages. Design decisions live in the repository's `DESIGN.md`.
+
+## Run checks
+
+```sh
+cd docs
+npm run check
+npm test
+npm run build
+npx playwright install --with-deps chromium
+npm run test:e2e
+```
+
+The browser tests use the included preview server. For Go regression checks, run `go test -race ./...` at the repository root. The Go and frontend have separate build pipelines and lockfiles.

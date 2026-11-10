@@ -1,0 +1,81 @@
+---
+title: Reusable references
+description: Define a response fragment once, then reuse it anywhere with Ref. Each use generates fresh values.
+---
+
+## Define a template
+
+Reusable objects live under the top-level `ref` key. Call `Ref(ref.profile)` from a response to expand that template.
+
+```json
+{
+  "ref": {
+    "profile": {
+      "id": "Uuid()",
+      "name": "User()",
+      "email": "User(email)"
+    }
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/workspace",
+      "response": {
+        "owner": "Ref(ref.profile)",
+        "members": "Array(len=3,type=Ref(ref.profile))"
+      }
+    }
+  ]
+}
+```
+
+This returns one owner object and three member objects. The owner and members share a shape; their generated values are independent.
+
+<picture>
+  <source
+    media="(max-width: 760px)"
+    srcset="/images/schema-flow-mobile.svg"
+    width="360"
+    height="510"
+  />
+  <img
+    src="/images/schema-flow.svg"
+    width="1000"
+    height="220"
+    alt="Schema, Go server and JSON response flow"
+  />
+</picture>
+
+## Resolve nested templates
+
+References follow the full object path, in order:
+
+```json
+{
+  "ref": {
+    "commerce": {
+      "customer": {
+        "name": "User()",
+        "orders": "Int(min=1,max=30)"
+      }
+    }
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/customer",
+      "response": { "customer": "Ref(ref.commerce.customer)" }
+    }
+  ]
+}
+```
+
+A missing reference returns a diagnostic string. A reference is a template lookup, not an external URL, database relationship or stable identity.
+
+## Use references in a dashboard
+
+The [dashboard demo](/dashboard/) uses `Array(len=5,type=Ref(ref.customer))` for its customer table. Select **View the schema** to inspect the route. Summary metrics come from separate numeric generators.
+
+The [builder](/builder/) automatically adds a `profile` template when you choose the **Reusable profile** field type.
+
+![The Gobi dashboard with explicitly labeled sample data, chart and customer records](/images/dashboard-preview.png)
