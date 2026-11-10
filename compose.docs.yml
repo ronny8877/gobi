@@ -1,0 +1,16 @@
+services:
+  gobi:
+    build: .
+    command: ["-config", "/app/api.gobi.json"]
+    volumes:
+      - ./examples/docs-demo.gobi.json:/app/api.gobi.json:ro
+    restart: unless-stopped
+  docs:
+    build:
+      context: .
+      dockerfile: docs/Dockerfile
+    ports:
+      - "127.0.0.1:${GOBI_DOCS_PORT:-4321}:80"
+    depends_on:
+      - gobi
+    restart: unless-stopped

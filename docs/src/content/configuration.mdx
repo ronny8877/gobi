@@ -1,0 +1,62 @@
+---
+title: Configuration
+description: One JSON document defines server behavior, reusable templates, and the endpoints your frontend needs.
+---
+
+## The complete shape
+
+```json
+{
+  "config": {
+    "port": 8080,
+    "prefix": "/api",
+    "logging": true,
+    "latency": 0,
+    "failRate": 0
+  },
+  "ref": {
+    "profile": { "id": "Uuid()", "name": "User()" }
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/profile",
+      "response": { "user": "Ref(ref.profile)" }
+    }
+  ]
+}
+```
+
+`config` and `ref` are optional. An empty configuration uses sensible defaults; `api` lists your mock routes.
+
+## Server options
+
+| Field        | Default | Meaning                                                        |
+| ------------ | ------- | -------------------------------------------------------------- |
+| `port`       | `8080`  | TCP port, from 1 to 65535. Must be available.                  |
+| `prefix`     | `/api`  | Prepended to each API path. Use an empty string for no prefix. |
+| `logging`    | `true`  | Request logging. Errors are still reported when disabled.      |
+| `latency`    | `0`     | Global delay in milliseconds, from 0 to 30000.                 |
+| `failRate`   | `0`     | Probability of a simulated HTTP 500, from 0 to 1.              |
+| `auth`       | omitted | Mock API key, bearer token or cookie.                          |
+| `pocketbase` | omitted | Optional persistent backend connection.                        |
+
+Global and route delays are added. Global and route failure checks happen independently. These controls help you test loading, retry and failure states; they do not measure real backend performance.
+
+## Route options
+
+Each route needs `method` and `path`. `response` holds its JSON template. Use `responseType: "Array(6)"` to return six independently generated copies. `latency`, `failRate`, `auth`, and `validate` can be added to an individual route.
+
+Keep route paths separate from the prefix: a path of `/users` with prefix `/api` is served at `/api/users`, not `/users`.
+
+## Reload behavior
+
+Configuration changes are validated before replacing the running configuration. Requests use a consistent snapshot, including its reference templates. Atomic file replacements from editors are supported.
+
+Routes, data and prefix changes take effect after a short debounce. **Port changes take effect after restarting.** Duplicate exact routes, invalid response array sizes and invalid rates are rejected.
+
+## Generate a starter file
+
+The [schema builder](/builder/) supports a single endpoint, flat response fields, arrays, reference templates, latency and failure rate. Download the file and run it using `gobi -config api.gobi.json`.
+
+![The schema builder with editable response fields and generated JSON configuration](/images/builder-preview.png)

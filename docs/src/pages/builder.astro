@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+import Builder from '../components/Builder.svelte';
+---
+
+<Base title="Schema builder">
+  <div class="wrap">
+    <header class="page-head">
+      <h1 class="page-title">Your next API starts here.</h1>
+      <p class="lede">
+        Choose a route, add response fields, and export a ready-to-run Gobi
+        configuration.
+      </p>
+    </header>
+    <Builder client:load />
+    <noscript>
+      <p class="notice">
+        Enable JavaScript to use the builder, or copy a complete configuration
+        from the <a href="/docs/configuration/">configuration guide</a>.
+      </p>
+    </noscript>
+  </div>
+</Base>

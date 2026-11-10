@@ -1,0 +1,110 @@
+{
+  "config": {
+    "port": 8080,
+    "prefix": "/api",
+    "logging": false
+  },
+  "ref": {
+    "profile": {
+      "name": "User()",
+      "email": "User(email)",
+      "id": "Uuid()",
+      "avatar": "DiceBearImage(initials)"
+    },
+    "customer": {
+      "id": "Uuid()",
+      "name": "User()",
+      "email": "User(email)",
+      "orders": "Int(min=1,max=30)",
+      "spend": "Int(min=80,max=900)"
+    }
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/users",
+      "responseType": "Array(6)",
+      "response": {
+        "name": "User()",
+        "email": "User(email)",
+        "role": "Company(jobTitle)",
+        "active": "Bool(true)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/profile",
+      "response": {
+        "owner": "Ref(ref.profile)",
+        "team": "Array(len=3,type=Ref(ref.profile))"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/metrics",
+      "response": {
+        "id": "Uuid()",
+        "visitors": "Int(min=1200,max=8000)",
+        "conversion": "Float(min=1,max=8,precision=2)",
+        "healthy": "Bool(true)",
+        "updated": "Time(iso)"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/events",
+      "validate": {
+        "body": [
+          "name"
+        ]
+      },
+      "response": {
+        "id": "Uuid()",
+        "message": "Message(Event created)",
+        "created": "Time(iso)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard",
+      "response": {
+        "visitors": "Int(min=3000,max=9000)",
+        "revenue": "Int(min=12000,max=30000)",
+        "orders": "Int(min=100,max=500)",
+        "conversion": "Float(min=1,max=8,precision=2)",
+        "series": [
+          {
+            "day": "Mon",
+            "visits": "Int(min=200,max=1200)"
+          },
+          {
+            "day": "Tue",
+            "visits": "Int(min=200,max=1200)"
+          },
+          {
+            "day": "Wed",
+            "visits": "Int(min=200,max=1200)"
+          },
+          {
+            "day": "Thu",
+            "visits": "Int(min=200,max=1200)"
+          },
+          {
+            "day": "Fri",
+            "visits": "Int(min=200,max=1200)"
+          },
+          {
+            "day": "Sat",
+            "visits": "Int(min=200,max=1200)"
+          },
+          {
+            "day": "Sun",
+            "visits": "Int(min=200,max=1200)"
+          }
+        ],
+        "customers": "Array(len=5,type=Ref(ref.customer))",
+        "updated": "Time(iso)"
+      }
+    }
+  ]
+}

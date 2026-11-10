@@ -1,0 +1,64 @@
+---
+title: Routes & HTTP methods
+description: Match incoming requests by their path and HTTP method. Use path parameters to model resource endpoints.
+---
+
+## Define a route
+
+```json
+{
+  "method": "GET",
+  "path": "/users/:id",
+  "response": {
+    "id": "Uuid()",
+    "name": "User()"
+  }
+}
+```
+
+With the default prefix, this matches `GET /api/users/123`. A colon-prefixed segment matches one nonempty path segment. It does not interpolate the parameter into the response: the `id` above is newly generated.
+
+## Match the method
+
+Gobi accepts GET, POST, PUT, PATCH, DELETE, HEAD and OPTIONS in route definitions. Methods in configuration are normalized to uppercase. Define a separate route for each behavior.
+
+```json
+{
+  "config": { "prefix": "/api" },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/notes",
+      "responseType": "Array(3)",
+      "response": { "title": "Lorem(type=sentence,len=6)" }
+    },
+    {
+      "method": "POST",
+      "path": "/notes",
+      "validate": { "body": ["title"] },
+      "response": { "message": "Message(Note created)", "id": "Uuid()" }
+    },
+    {
+      "method": "DELETE",
+      "path": "/notes/:id",
+      "response": { "deleted": true }
+    }
+  ]
+}
+```
+
+These are stateless mock responses. A successful mock POST does not change subsequent GET responses. Use [PocketBase](/docs/pocketbase/) when the records need to persist.
+
+## Send a body
+
+```sh
+curl -X POST http://localhost:8080/api/notes \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Ship the frontend"}'
+```
+
+A matching path with the wrong method returns **405** and an `Allow` header. An unknown path returns **404**. Mock response routes normally return **200**; failure simulation returns **500**. Arbitrary success status codes are not currently configurable.
+
+## Reserved endpoints
+
+`GET /auth` returns your configured mock credentials. `/health` returns server health. Both are outside the API prefix. Do not use real production secrets in mock auth configuration.

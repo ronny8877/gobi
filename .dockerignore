@@ -4,3 +4,9 @@ images
 pb_data
 coverage.out
 gobi
+docs/node_modules
+docs/dist
+docs/.astro
+docs/test-results
+docs/playwright-report
+.impeccable

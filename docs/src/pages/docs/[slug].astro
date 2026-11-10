@@ -1,0 +1,23 @@
+---
+import Doc from '../../layouts/Doc.astro';
+import type { MDXInstance } from 'astro';
+export function getStaticPaths() {
+  const pages = import.meta.glob<
+    MDXInstance<{ title: string; description: string }>
+  >('../../content/*.mdx', { eager: true });
+  return Object.entries(pages).map(([file, page]) => ({
+    params: { slug: file.split('/').at(-1)!.replace('.mdx', '') },
+    props: { page },
+  }));
+}
+const { page } = Astro.props;
+const { Content, frontmatter, getHeadings } = page;
+---
+
+<Doc
+  title={frontmatter.title}
+  description={frontmatter.description}
+  headings={getHeadings()}
+>
+  <Content />
+</Doc>

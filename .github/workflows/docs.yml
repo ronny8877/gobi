@@ -1,0 +1,39 @@
+name: Docs and demos
+on:
+  push:
+    branches: [main, improve/runtime-persistence]
+    paths: ['docs/**', 'examples/docs-demo.gobi.json', 'compose.docs.yml', '.github/workflows/docs.yml']
+  pull_request:
+    paths: ['docs/**', 'examples/docs-demo.gobi.json', 'compose.docs.yml', '.github/workflows/docs.yml']
+permissions:
+  contents: read
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: npm ci
+        working-directory: docs
+      - run: npm run format:check && npm run check && npm test && npm run build
+        working-directory: docs
+      - run: npx playwright install --with-deps chromium
+        working-directory: docs
+      - name: Start demo API
+        run: |
+          go build -o /tmp/gobi .
+          python3 -c 'import json; d=json.load(open("examples/docs-demo.gobi.json")); d["config"]["port"]=18080; json.dump(d,open("/tmp/docs-demo.json","w"))'
+          /tmp/gobi -config /tmp/docs-demo.json > /tmp/gobi-docs.log 2>&1 &
+      - run: npm run test:e2e
+        working-directory: docs
+        env:
+          ASTRO_TELEMETRY_DISABLED: 1
+          GOBI_E2E_LIVE: 1
+          GOBI_API_URL: http://127.0.0.1:18080
