@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -10,168 +14,166 @@ import (
 	"time"
 )
 
-func startServer(app *App) {
-	//So with even a minimal setup, we can check if the server is running
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-Powered-By", "Gobi")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-	})
-	//Mock Auth server
-	http.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-Powered-By", "Gobi")
+const maxBodyBytes = 1 << 20
 
-		//If no auth is provided, return an error
-		if app.Config.Auth == nil {
-			http.Error(w, `{"error": "No Auth Configured"}`, http.StatusInternalServerError)
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Powered-By", "Gobi")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(value)
+}
+func writeError(w http.ResponseWriter, status int, message string) {
+	writeJSON(w, status, map[string]string{"error": message})
+}
+
+func arrayLength(value string) (int, error) {
+	name, args, err := parseValueBwBrackets(value)
+	if err != nil || name != "Array" {
+		return 0, fmt.Errorf("responseType must be Array(n)")
+	}
+	n, err := strconv.Atoi(args)
+	if err != nil || n < 0 || n > maxArrayLength {
+		return 0, fmt.Errorf("array length must be between 0 and %d", maxArrayLength)
+	}
+	return n, nil
+}
+func delay(r *http.Request, ms *int) bool {
+	if ms == nil || *ms <= 0 {
+		return true
+	}
+	timer := time.NewTimer(time.Duration(*ms) * time.Millisecond)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return true
+	case <-r.Context().Done():
+		return false
+	}
+}
+
+func newHandler(a *App) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		snapshot := a.snapshot()
+		if r.URL.Path == "/health" {
+			writeJSON(w, 200, map[string]string{"status": "ok"})
 			return
 		}
-
-		//Send whatever creds we had in the response
-		response := map[string]interface{}{
-			"apiKey":      app.Config.Auth.ApiKey,
-			"bearerToken": app.Config.Auth.BearerToken,
-			"cookie":      app.Config.Auth.Cookie,
+		if r.URL.Path == "/auth" {
+			serveMockAuth(w, r, &snapshot.Config)
+			return
 		}
-		// attach the cookie in the header if it is provided
-		if app.Config.Auth.Cookie != nil && *app.Config.Auth.Cookie != "" {
-			cookieParts := strings.SplitN(*app.Config.Auth.Cookie, "=", 2)
-			if len(cookieParts) == 2 {
-				http.SetCookie(w, &http.Cookie{
-					Name:  cookieParts[0],
-					Value: cookieParts[1],
-				})
-			} else {
-				// Made an oopsie
-				http.Error(w, "Invalid cookie format", http.StatusInternalServerError)
+		snapshot.serveAPI(w, r)
+	})
+}
+
+func serveMockAuth(w http.ResponseWriter, r *http.Request, c *AppConfig) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", "GET")
+		writeError(w, 405, "method not allowed")
+		return
+	}
+	// This endpoint deliberately returns mock credentials; never configure real secrets here.
+	if c.Auth == nil {
+		writeError(w, 500, "no mock auth configured")
+		return
+	}
+	if c.Auth.Cookie != nil && *c.Auth.Cookie != "" {
+		parts := strings.SplitN(*c.Auth.Cookie, "=", 2)
+		if len(parts) != 2 || parts[0] == "" {
+			writeError(w, 500, "invalid cookie configuration")
+			return
+		}
+		cookie := &http.Cookie{Name: parts[0], Value: parts[1], Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode}
+		if err := cookie.Valid(); err != nil {
+			writeError(w, 500, "invalid cookie configuration")
+			return
+		}
+		http.SetCookie(w, cookie)
+	}
+	if c.Auth.ApiKey != nil {
+		w.Header().Set("X-API-Key", *c.Auth.ApiKey)
+	}
+	writeJSON(w, 200, map[string]any{"apiKey": c.Auth.ApiKey, "bearerToken": c.Auth.BearerToken, "cookie": c.Auth.Cookie})
+}
+
+func (a *App) serveAPI(w http.ResponseWriter, r *http.Request) {
+	a.Logger().info("%s %s", r.Method, r.URL.Path)
+	if !delay(r, a.Config.Latency) {
+		return
+	}
+	if a.Config.FailRate != nil && rand.Float64() < float64(*a.Config.FailRate) {
+		writeError(w, 500, "simulated failure")
+		return
+	}
+	allowed := []string{}
+	for i := range a.APIs {
+		api := &a.APIs[i]
+		if !matchPath(a.Config.Prefix+api.Path, r) {
+			continue
+		}
+		if api.Method != r.Method {
+			allowed = append(allowed, api.Method)
+			continue
+		}
+		if !delay(r, api.Latency) {
+			return
+		}
+		if api.FailRate != nil && rand.Float64() < *api.FailRate {
+			writeError(w, 500, "simulated failure")
+			return
+		}
+		if api.Auth != nil && (api.Auth.Protected == nil || *api.Auth.Protected) {
+			ok, err := auth(&a.Config, api, r)
+			if err != nil || !ok {
+				writeError(w, 401, "unauthorized")
 				return
 			}
 		}
-		//Attach the api key in the header if it is provided
-		if app.Config.Auth.Cookie != nil && *app.Config.Auth.ApiKey != "" {
-			w.Header().Set("X-API-Key", *app.Config.Auth.ApiKey)
-		}
-		json.NewEncoder(w).Encode(response)
-
-	})
-
-	http.HandleFunc(fmt.Sprintf("%s/", app.Config.Prefix), func(w http.ResponseWriter, r *http.Request) {
-
-		logger.info("%s %s\n", r.Method, r.URL.Path)
-
-		//Global Latency
-		if *app.Config.Latency != 0 {
-			logger.info("Adding global Latency %d ms\n", *app.Config.Latency)
-			time.Sleep(time.Duration(*app.Config.Latency) * time.Millisecond)
-		}
-		//Global Fail Rate
-		if app.Config.FailRate != nil {
-			random := rand.Float64()
-			if random < float64(*app.Config.FailRate) {
-				http.Error(w, `{"error":"Internal server Error"}`, http.StatusInternalServerError)
-				return
+		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+		if api.Validate != nil {
+			if api.Validate.Query != nil {
+				if _, err := validateQuery(*api.Validate.Query, r.URL.Query()); err != nil {
+					writeError(w, 400, err.Error())
+					return
+				}
+			}
+			if api.Validate.Body != nil {
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					writeError(w, 413, "request body too large")
+					return
+				}
+				if _, err := validateBody(*api.Validate.Body, io.NopCloser(bytes.NewReader(body))); err != nil {
+					writeError(w, 400, err.Error())
+					return
+				}
+				r.Body = io.NopCloser(bytes.NewReader(body))
 			}
 		}
-
-		if len(app.APIs) == 0 {
-			http.Error(w, `{"error": "No APIs found"}`, http.StatusNotFound)
+		if api.PocketBase != nil {
+			a.servePocketBase(w, r, api)
 			return
 		}
-		//check if the path is in the APIs
-		var found = false
-		for _, api := range app.APIs {
-			if strings.HasPrefix(r.URL.Path, app.Config.Prefix) && matchPath(fmt.Sprint(app.Config.Prefix, api.Path), r) && api.Method == r.Method {
-				//parse the path params
-				// pathParams, err := parsePathParams(fmt.Sprint(app.Config.Prefix, api.Path), r)
-				// if err != nil {
-				// 	logger.err("Error parsing path params: ", err)
-				// }
-				// logger.info("Path Params: ", string(pathParams))
-
-				found = true
-
-				// API-specific latency
-				if api.Latency != nil && *api.Latency != 0 {
-					logger.info("Adding path Latency %d ms\n", *api.Latency)
-					time.Sleep(time.Duration(*api.Latency) * time.Millisecond)
-				}
-
-				// API-specific fail rate
-				if api.FailRate != nil && *api.FailRate != 0 {
-					random := rand.Float64()
-					if random < *api.FailRate {
-						http.Error(w, `{"error":"Internal server Error"}`, http.StatusInternalServerError)
-						return
-					}
-				}
-
-				// Authentication
-				if app.Config.Auth != nil && api.Auth != nil && api.Auth.ProtectedBy != nil && *api.Auth.ProtectedBy != "" {
-					_, err := auth(&app.Config, &api, r)
-					if err != nil {
-						http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
-						return
-					}
-				}
-
-				// Validation
-				if api.Validate != nil {
-					//Query Validation
-					if api.Validate.Query != nil {
-						_, err := validateQuery(*api.Validate.Query, r.URL.Query())
-						if err != nil {
-							logger.err("Invalid Query Params")
-							http.Error(w, `{"error": "Invalid Query Params"}`, http.StatusBadRequest)
-							return
-						}
-
-						logger.info("Valid Query Params")
-
-					}
-					//Body Validation
-					if api.Validate.Body != nil {
-						_, err := validateBody(*api.Validate.Body, r.Body)
-						if err != nil {
-							logger.err("Invalid Query Params")
-							http.Error(w, `{"error": "Invalid Body"}`, http.StatusBadRequest)
-							return
-						}
-						logger.debug("Valid Body ")
-
-					}
-				}
-				// Response
-				w.Header().Set("Content-Type", "application/json")
-				w.Header().Set("X-Powered-By", "Gobi")
-				//Response Type
-				if api.ResponseType != nil {
-					respType, arg, err := parseValueBwBrackets(*api.ResponseType)
-					if err != nil {
-						http.Error(w, `{"error": "Invalid Response Type"}`, http.StatusBadRequest)
-						return
-					}
-
-					response := []interface{}{}
-					if respType == "Array" {
-						arrLenInt, _ := strconv.Atoi(arg)
-						for i := 0; i < arrLenInt; i++ {
-							response = append(response, responseBuilder(api.Response))
-						}
-						json.NewEncoder(w).Encode(response)
-						break
-					}
-				} else {
-					response := responseBuilder(api.Response)
-					json.NewEncoder(w).Encode(response)
-					break
-				}
+		if api.ResponseType != nil {
+			n, err := arrayLength(*api.ResponseType)
+			if err != nil {
+				writeError(w, 500, err.Error())
+				return
 			}
+			result := make([]any, 0, n)
+			for j := 0; j < n; j++ {
+				result = append(result, responseBuilderWithRefs(api.Response, a.Ref, 0))
+			}
+			writeJSON(w, 200, result)
+			return
 		}
-		if !found {
-			http.Error(w, `{"error": "API not found"}`, http.StatusNotFound)
-		}
-
-	})
+		writeJSON(w, 200, responseBuilderWithRefs(api.Response, a.Ref, 0))
+		return
+	}
+	if len(allowed) > 0 {
+		w.Header().Set("Allow", strings.Join(allowed, ", "))
+		writeError(w, 405, "method not allowed")
+		return
+	}
+	writeError(w, 404, "API not found")
 }

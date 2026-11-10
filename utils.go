@@ -1,10 +1,12 @@
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -24,7 +26,7 @@ func parseValueBwBrackets(value string) (string, string, error) {
 	if strings.HasSuffix(parts[1], ")") {
 		args = strings.TrimSpace(parts[1][:len(parts[1])-1])
 	} else {
-		args = strings.TrimSpace(parts[1])
+		return "", "", fmt.Errorf("missing closing parenthesis: %s", value)
 	}
 
 	return name, args, nil
@@ -50,6 +52,8 @@ func processMap(data map[string]interface{}, funcMap map[string]func(*string) in
 			}
 		case map[string]interface{}:
 			result[key] = processMap(v, funcMap)
+		case []interface{}:
+			result[key] = processSlice(v, funcMap)
 		default:
 			result[key] = v
 		}
@@ -80,6 +84,9 @@ func matchPath(path string, r *http.Request) bool {
 	}
 	for i, part := range pathParts {
 		if strings.HasPrefix(part, ":") {
+			if requestParts[i] == "" {
+				return false
+			}
 			continue
 		}
 		if part != requestParts[i] {
@@ -89,77 +96,68 @@ func matchPath(path string, r *http.Request) bool {
 	return true
 }
 func formatAvatarURL(seed, avatarType string) string {
-	return fmt.Sprintf("https://api.dicebear.com/9.x/%s/svg?seed=%s", avatarType, seed)
+	return fmt.Sprintf("https://api.dicebear.com/9.x/%s/svg?seed=%s", avatarType, url.QueryEscape(seed))
 }
 
+// parseArguments splits only at top-level commas and the first equals sign.
 func parseArguments(args string) (map[string]string, error) {
 	result := make(map[string]string)
-	stack := []string{}
-	currentKey := ""
-	currentValue := ""
-	inBrackets := false
-
-	for i := 0; i < len(args); i++ {
-		char := args[i]
-
-		switch char {
-		case '=':
-			if !inBrackets {
-				currentKey = strings.TrimSpace(currentValue)
-				currentValue = ""
-			} else {
-				currentValue += string(char)
+	if strings.TrimSpace(args) == "" {
+		return result, nil
+	}
+	depth, start := 0, 0
+	add := func(part string) error {
+		key, value, ok := strings.Cut(part, "=")
+		key = strings.TrimSpace(key)
+		if !ok || key == "" {
+			return errors.New("arguments must use name=value")
+		}
+		if _, exists := result[key]; exists {
+			return fmt.Errorf("duplicate argument %s", key)
+		}
+		result[key] = strings.TrimSpace(value)
+		return nil
+	}
+	for i, r := range args {
+		switch r {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth < 0 {
+				return nil, errors.New("mismatched brackets in argument string")
 			}
 		case ',':
-			if !inBrackets {
-				result[currentKey] = strings.TrimSpace(currentValue)
-				currentKey = ""
-				currentValue = ""
-			} else {
-				currentValue += string(char)
+			if depth == 0 {
+				if err := add(args[start:i]); err != nil {
+					return nil, err
+				}
+				start = i + 1
 			}
-		case '(':
-			inBrackets = true
-			stack = append(stack, currentValue)
-			currentValue += string(char)
-		case ')':
-			currentValue += string(char)
-			if len(stack) > 0 {
-				stack = stack[:len(stack)-1]
-			}
-			if len(stack) == 0 {
-				inBrackets = false
-			}
-		default:
-			currentValue += string(char)
 		}
 	}
-
-	if currentKey != "" {
-		result[currentKey] = strings.TrimSpace(currentValue)
-	}
-
-	if len(stack) > 0 {
+	if depth != 0 {
 		return nil, errors.New("mismatched brackets in argument string")
 	}
-
+	if err := add(args[start:]); err != nil {
+		return nil, err
+	}
 	return result, nil
 }
 
-// checkIfPortIsAvailable checks if a given port is available for use.
-func checkIfPortIsAvailable(port int) bool {
-	//Just to satisfy NICK
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	if err != nil {
-		return false
+func processSlice(values []interface{}, funcs map[string]func(*string) interface{}) []interface{} {
+	result := make([]interface{}, len(values))
+	for i, value := range values {
+		switch v := value.(type) {
+		case map[string]interface{}:
+			result[i] = processMap(v, funcs)
+		case []interface{}:
+			result[i] = processSlice(v, funcs)
+		case string:
+			result[i] = processMap(map[string]interface{}{"value": v}, funcs)["value"]
+		default:
+			result[i] = value
+		}
 	}
-	defer listener.Close()
-	return true
-}
-func findValidPort(port int) int {
-	for !checkIfPortIsAvailable(port) {
-		logger.err("Port %d is already in use", port)
-		port++
-	}
-	return port
+	return result
 }

@@ -1,16 +1,19 @@
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
+	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
-
-	"github.com/charmbracelet/log"
-	"github.com/fsnotify/fsnotify"
 )
 
 type ProtectedByType string
@@ -18,8 +21,8 @@ type ProtectedByType string
 // Constants for ProtectedByType
 const (
 	APIKey      ProtectedByType = "apiKey"
-	BearerToken ProtectedByType = "BearerToken"
-	Cookies     ProtectedByType = "Cookies"
+	BearerToken ProtectedByType = "bearer"
+	Cookies     ProtectedByType = "cookie"
 )
 
 type APIAuth struct {
@@ -28,6 +31,7 @@ type APIAuth struct {
 }
 
 type API struct {
+	PocketBase   *PocketBaseRoute       `json:"pocketbase,omitempty"`
 	Auth         *APIAuth               `json:"auth"` // Optional field
 	Method       string                 `json:"method"`
 	Path         string                 `json:"path"`
@@ -50,150 +54,90 @@ type Auth struct {
 }
 
 type AppConfig struct {
-	Auth     *Auth    `json:"auth"`
-	Prefix   string   `json:"prefix"`
-	Port     int      `json:"port"`
-	Latency  *int     `json:"latency"`
-	Logging  *bool    `json:"logging"`
-	FailRate *float32 `json:"failRate"`
+	PocketBase *PocketBaseConfig `json:"pocketbase,omitempty"`
+	Auth       *Auth             `json:"auth"`
+	Prefix     string            `json:"prefix"`
+	Port       int               `json:"port"`
+	Latency    *int              `json:"latency"`
+	Logging    *bool             `json:"logging"`
+	FailRate   *float32          `json:"failRate"`
 }
 
 type App struct {
+	mu     sync.RWMutex
 	Config AppConfig               `json:"config"`
 	Ref    *map[string]interface{} `json:"ref"`
 	APIs   []API                   `json:"api"`
 }
 
-var defaultLatency = 0
-var defaultFailRate = float32(0.0)
-var defaultLogging = true
-
-var defaultConfig = AppConfig{
-	Prefix:   "/api",
-	Port:     8080,
-	Logging:  &defaultLogging,  // Optional field
-	Latency:  &defaultLatency,  // Optional field
-	FailRate: &defaultFailRate, // Optional field        // Optional field
-}
-
-var app App = App{
-	Config: defaultConfig,
-	APIs:   []API{},
-}
-
+var app = App{Config: newDefaultConfig()}
 var logger = app.Logger()
 
-func (app *App) loadAppConfig(filename string) error {
-	// Read the file
-	file, err := os.ReadFile(filename)
-	if err != nil {
-		return fmt.Errorf("error reading file: %w", err)
-	}
-
-	// Check if the file is empty
-	if len(file) == 0 {
-		return fmt.Errorf("error: %s is empty", filename)
-	}
-
-	// Unmarshal the JSON into the new instance
-	err = json.Unmarshal(file, &app)
-
-	if err != nil {
-		return fmt.Errorf("error parsing JSON")
-	}
-
-	logger.info("config loaded successfully")
-
-	return nil
+func newDefaultConfig() AppConfig {
+	latency, rate, logging := 0, float32(0), true
+	return AppConfig{Prefix: "/api", Port: 8080, Latency: &latency, FailRate: &rate, Logging: &logging}
 }
 
-func (app *App) watchConfigFile(filename string) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal("Error creating watcher:", err)
-		return
-	}
-	defer watcher.Close()
-
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					logger.info("Config file modified, reloading...")
-					time.Sleep(100 * time.Millisecond) // Add a small delay before reloading as the it was crashing without it
-					app.Config = defaultConfig
-					app.APIs = []API{}
-					app.Ref = nil
-					if err := app.loadAppConfig(filename); err != nil {
-						logger.err("Error reloading config: ", err)
-					}
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Fatal("Watcher error:", err)
-			}
-		}
-	}()
-
-	err = watcher.Add(filename)
-	if err != nil {
-		log.Fatal("Error adding file to watcher:", err)
-	}
-	<-done
+func (a *App) snapshot() *App {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return &App{Config: a.Config, Ref: a.Ref, APIs: a.APIs}
 }
 
 func main() {
-
-	// Channel to signal when the Bubble Tea interface has completed
-	done := make(chan error, 1)
-
-	// Run the Bubble Tea interface in a separate goroutine
-	go func() {
-		done <- startApp()
-	}()
-
-	// Wait for the Bubble Tea interface to complete
-	if err := <-done; err != nil {
-		log.Error("Error starting the app")
+	filename := flag.String("config", "", "path to a Gobi JSON configuration (skips the interactive menu)")
+	flag.Parse()
+	if *filename == "" {
+		if err := startApp(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		*filename = config.Active
+	}
+	if *filename == "" {
 		return
 	}
-
-	if config.Active == "" {
-		log.Error("No config file provided")
-		return
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := runServer(ctx, *filename); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
-	serverSetup()
-	// Wait for interrupt signal to gracefully shutdown the application
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	<-sigChan
-	fmt.Println("Shutting down...")
 }
 
-func serverSetup() {
-	filename := "api.gobi.json"
-	path := config.Active
-	if path == "" {
-		path = path + "/api.gobi.json"
-		filename = path
-	}
-	filename = path
-	// Load the configuration
+func runServer(ctx context.Context, filename string) error {
+	ctx, cancelWatch := context.WithCancel(ctx)
+	defer cancelWatch()
 	if err := app.loadAppConfig(filename); err != nil {
-		logger.err("Error loading config: ", err)
-		return
+		return err
 	}
-	go app.watchConfigFile(filename)
-
-	go startServer(&app)
-	app.Config.Port = findValidPort(app.Config.Port)
-	logger.info("Server is running on http://localhost:%d%s/\n", app.Config.Port, app.Config.Prefix)
-	http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), nil)
+	cfg := app.snapshot().Config
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Port))
+	if err != nil {
+		return fmt.Errorf("listen: %w", err)
+	}
+	server := &http.Server{Handler: newHandler(&app), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 90 * time.Second, IdleTimeout: 60 * time.Second}
+	go app.watchConfigFile(ctx, filename)
+	stopped := make(chan struct{})
+	shutdownDone := make(chan struct{})
+	go func() {
+		defer close(shutdownDone)
+		select {
+		case <-ctx.Done():
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := server.Shutdown(shutdownCtx); err != nil {
+				_ = server.Close()
+			}
+		case <-stopped:
+		}
+	}()
+	logger.info("Server listening on %s%s", listener.Addr(), cfg.Prefix)
+	serveErr := server.Serve(listener)
+	close(stopped)
+	<-shutdownDone
+	if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+		return serveErr
+	}
+	return nil
 }

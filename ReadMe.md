@@ -1127,16 +1127,105 @@ Response
 }
 ```
 
-### Things to be implemented
-- [ ] More Mock Data Methods (If needed)
-- [ ] Better Error Handling and Logging
-- [ ] Better Documentation
-- [ ] Code Cleanup
-- [ ] Adding test
-- [ ] Presistent Data
+### Maintenance and persistence
+
+- [x] Error handling and configuration validation
+- [x] Race-safe hot reload, including atomic editor saves
+- [x] Regression tests and race checks in CI
+- [x] Optional persistent CRUD with PocketBase
+- [x] MIT license
+- [ ] Additional mock generators as requested
+
+### Running on a server
+
+Build with Go 1.27 or newer:
+
+```sh
+go build -o gobi .
+./gobi -config examples/minimal.json
+```
+
+Omit `-config` to use the existing interactive menu. Startup failures exit with a
+nonzero status. SIGINT and SIGTERM stop the HTTP server gracefully. The configured
+port must be available; Gobi reports a bind error instead of silently choosing a
+different port. Changes to the port require a restart; routes, prefix, auth and
+response templates reload automatically. Invalid edits preserve the last valid
+configuration. Latency is limited to 30 seconds and generated arrays to 10,000 items.
+
+```sh
+docker build -t gobi .
+docker run --rm -p 8080:8080 -v "$PWD/api.gobi.json:/app/api.gobi.json:ro" gobi
+```
+
+### PocketBase persistence (optional)
+
+Existing configurations continue generating fresh mock responses. For persistent
+records, run a separate [PocketBase](https://pocketbase.io/docs/) service, create a
+**base collection** named `users` with a text field `name`, and configure its API
+rules for your intended access. Use a different name if an auth collection already
+uses `users`. Update the example's collection values accordingly.
+
+Use `examples/pocketbase.gobi.json` as a starting point. Set `POCKETBASE_TOKEN` to a
+valid PocketBase auth token that has access to this collection, then run:
+
+```sh
+export POCKETBASE_TOKEN='your-pocketbase-token'
+./gobi -config examples/pocketbase.gobi.json
+curl -H 'X-API-Key: mock-client-key' -H 'Content-Type: application/json' \
+  -d '{"name":"Ronny"}' http://localhost:8080/api/users
+curl -H 'X-API-Key: mock-client-key' http://localhost:8080/api/users
+```
+
+`config.pocketbase.url` is the backend URL. `tokenEnv` names the environment variable
+holding the token; it is optional when PocketBase rules permit unauthenticated access.
+Gobi does not acquire or refresh tokens. Rotate expired tokens and restart Gobi.
+Inside Docker, use a reachable service hostname rather than `127.0.0.1` and pass the
+token using `--env POCKETBASE_TOKEN`.
+
+Each route opts in with `"pocketbase":{"collection":"users"}`. Collection routes
+support GET (paginated list) and POST (create); routes ending in `/:id` support GET,
+PATCH and DELETE. PocketBase response JSON and status codes pass through. List
+parameters `page`, `perPage`, `sort`, `filter`, `expand`, `fields`, and `skipTotal`
+are supported. JSON request bodies are limited to 1 MiB. Files, realtime subscriptions,
+collection management and automatic schema creation are outside this adapter's scope.
+PocketBase owns persistence: preserve and back up its `pb_data` directory.
+
+Gobi authentication, validation and simulated latency/failure still apply before
+requests reach PocketBase. `response` and `responseType` are unused for PocketBase
+routes. Keep the backend token scoped to the intended collections: the adapter uses
+a service identity, not per-user PocketBase authentication.
+
+### Mock authentication and validation
+
+`/auth` intentionally returns configured **mock credentials**, including the mock
+cookie, to support frontend demos. Never put production credentials in `config.auth`
+or use this mock authentication as protection for sensitive data. The separate
+PocketBase token is not exposed by `/auth`. Bind access through your deployment's
+network/authentication controls when needed.
+
+`protected: false` disables route authentication. With an auth block and no
+`protected` field, authentication is enabled. Supported methods are `apiKey`,
+`bearer`, and `cookie` (legacy `BearerToken` and `Cookies` are also accepted).
+Missing configured credentials deny access. Cookie names come from `name=value`.
+
+Body validation requires a single JSON object and checks top-level field names;
+it does not match text inside values. A field with a null value counts as present.
+Typed validators are not implemented.
+
+### Development
+
+```sh
+gofmt -w *.go
+go vet ./...
+go test -race -cover ./...
+go build ./...
+```
+
+### License
+
+MIT, copyright 2026 ronny8877. See [LICENSE](LICENSE).
 
 ### Contributing
-Feel free to do anything It's my first project to shitty code is expected.  : )
-If ya find any bugs or have any suggestions feel free to open an issue or a PR. and please explain the issue or the PR in detail. It'll help me understand better.
 
-
+Bug reports, tests and pull requests are welcome. Include a minimal configuration,
+expected behavior, actual behavior, and the checks you ran.

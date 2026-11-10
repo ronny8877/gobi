@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
@@ -27,24 +29,28 @@ func (app *App) Logger() *LoggerStruct {
 
 	return &LoggerStruct{
 		info: func(msg string, args ...interface{}) {
-			if app.Config.Logging != nil && *app.Config.Logging {
+			if app.loggingEnabled() {
 				logger.Infof(msg, args...)
 			}
 		},
 		warn: func(msg string, args ...interface{}) {
-			if app.Config.Logging != nil && *app.Config.Logging {
+			if app.loggingEnabled() {
 				logger.Warnf(msg, args...)
 			}
 		},
 		err: func(msg string, args ...interface{}) {
-			if app.Config.Logging != nil && *app.Config.Logging {
-				logger.Errorf(msg, args...)
-			}
+			logger.Errorf(msg, args...)
 		},
 		debug: func(msg string, args ...interface{}) {
-			if app.Config.Logging != nil && *app.Config.Logging {
+			if app.loggingEnabled() {
 				logger.Debugf(msg, args...)
 			}
 		},
 	}
+}
+
+func (app *App) loggingEnabled() bool {
+	app.mu.RLock()
+	defer app.mu.RUnlock()
+	return app.Config.Logging != nil && *app.Config.Logging
 }
