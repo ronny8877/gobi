@@ -1,14 +1,23 @@
 # GOBI
 
-A simple mock server that allows users to fine-grain control over the mock data.
+A configurable Go mock API server. Define response templates in JSON, generate the data your frontend needs, and optionally connect PocketBase for persistent records.
 
-This is my first program in Go, and I am enjoying the language. A mock server is what I needed, so as my introduction to Go, I decided to make it in Go.
+## Docs, demos and schema builder
 
-<img src="./images/start.png">
+The repository includes a documentation site built with **Astro, MDX, Svelte 5 and Tailwind CSS 4**:
 
-Run the app create new or open by providing the path to json file. Whatever you do the file is saved and you can open again from  `Select from List` 
+- Structured guides for configuration, methods, generators, Array, Ref, auth, validation and PocketBase.
+- A playground showing complete schemas beside sample or actual Go responses.
+- A working dashboard with generated statistics, a chart and searchable customer data.
+- A starter schema builder with live JSON output and .gobi.json export.
 
-# I AM DA COOK
+```sh
+docker compose -f compose.docs.yml up --build -d
+```
+
+Open `http://localhost:4321`, select **Live Gobi server** in the playground or dashboard, and send a request. The default **Sample fixture** mode also works without a backend. See [docs/README.md](docs/README.md) for local development, static hosting and testing.
+
+![Gobi dashboard demo](docs/public/images/dashboard-preview.png)
 
 ## Features
 - Authenticated Routes

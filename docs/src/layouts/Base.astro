@@ -1,0 +1,110 @@
+---
+import '../styles/global.css';
+import Icon from '../components/Icon.astro';
+interface Props {
+  title: string;
+  description?: string;
+}
+const {
+  title,
+  description = 'A small Go mock API server. Learn the schema, explore live data, and build your next mock API.',
+} = Astro.props;
+const path = Astro.url.pathname;
+const links = [
+  ['/docs/quick-start/', 'Guide'],
+  ['/playground/', 'Playground'],
+  ['/dashboard/', 'Dashboard'],
+  ['/builder/', 'Schema builder'],
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#fafaf7" />
+    <title>{title} · Gobi</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:bg-white focus:p-3 focus:z-50"
+    >
+      Skip to content
+    </a>
+    <header class="masthead">
+      <div class="wrap masthead-inner">
+        <a href="/" class="brand" aria-label="Gobi home">
+          <svg
+            class="brandmark"
+            viewBox="0 0 36 36"
+            fill="none"
+            aria-hidden="true"
+          >
+            <rect width="36" height="36" rx="9" fill="currentColor" />
+            <path
+              d="m13 11-6 7 6 7m10-14 6 7-6 7M20 10l-4 16"
+              stroke="#f5f8ed"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          gobi
+          <span class="hidden xl:inline text-[11px] font-normal tracking-normal text-muted ml-3">
+            Mock APIs, made yours.
+          </span>
+        </a>
+        <nav class="nav" aria-label="Main navigation">
+          {links.map(([href, label]) => (
+            <a
+              href={href}
+              class:list={{
+                active: path.startsWith(
+                  href.split('/')[1] === 'docs' ? '/docs/' : href,
+                ),
+              }}
+              aria-current={
+                path.startsWith(href.split('/')[1] === 'docs' ? '/docs/' : href)
+                  ? 'page'
+                  : undefined
+              }
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+        <a class="repo-link" href="https://github.com/ronny8877/gobi">
+          <Icon name="github" size={18} />
+          GitHub
+        </a>
+        <details class="mobile-nav">
+          <summary>Menu</summary>
+          <nav aria-label="Mobile navigation">
+            {links.map(([href, label]) => (
+              <a href={href}>{label}</a>
+            ))}
+            <a href="https://github.com/ronny8877/gobi">GitHub</a>
+          </nav>
+        </details>
+      </div>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <span>Built for the part before the backend is ready.</span>
+        <span>
+          Gobi by <a href="https://github.com/ronny8877">ronny8877</a> ·{' '}
+          <a href="https://github.com/ronny8877/gobi/blob/improve/runtime-persistence/LICENSE">
+            MIT licensed
+          </a>
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>

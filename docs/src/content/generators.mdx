@@ -1,0 +1,67 @@
+---
+title: Data generators
+description: Describe the values you need with small expressions. Gobi evaluates them when a request arrives.
+---
+
+## Common generators
+
+| Expression                        | Result                           |
+| --------------------------------- | -------------------------------- |
+| `User()`                          | Person's full name               |
+| `User(email)`                     | Email address                    |
+| `User(username)`                  | Username                         |
+| `User(birthday)`                  | A past date in YYYY-MM-DD format |
+| `Uuid()`                          | UUID v4                          |
+| `Int(min=1,max=100)`              | Integer                          |
+| `Float(min=1,max=10,precision=2)` | Decimal                          |
+| `Bool(true)` / `Bool(false)`      | Fixed boolean                    |
+| `Bool()`                          | Random boolean                   |
+| `Time(iso)`                       | Timestamp string                 |
+| `Time(unix)`                      | Unix seconds                     |
+| `Company(jobTitle)`               | Job title                        |
+| `Address(city)`                   | City                             |
+| `Color(hex)`                      | Hex color                        |
+| `Lorem(type=words,len=6)`         | Generated words                  |
+| `Message(Created)`                | Literal message text             |
+| `DiceBearImage(initials)`         | Generated avatar URL             |
+
+Other families include `Finance`, `Internet`, `Language`, `Vehicle`, `App`, `Placehold`, `LoremPicsum` and `Json`. The repository README includes the larger argument catalog.
+
+## Keep JSON types
+
+```json
+{
+  "response": {
+    "label": "Overview",
+    "visitors": "Int(min=100,max=900)",
+    "ratio": "Float(min=1,max=5,precision=2)",
+    "enabled": "Bool(true)",
+    "literalNumber": 42,
+    "literalBoolean": false
+  }
+}
+```
+
+The expressions are strings in your template; generated numbers and booleans become real JSON numbers and booleans in the response. Literal values retain their type.
+
+## Nest objects and literal arrays
+
+```json
+{
+  "response": {
+    "profile": { "name": "User()", "id": "Uuid()" },
+    "series": [
+      { "day": "Mon", "visits": "Int(min=100,max=500)" },
+      { "day": "Tue", "visits": "Int(min=100,max=500)" }
+    ]
+  }
+}
+```
+
+Expressions inside nested objects and literal arrays are evaluated. Named arguments are separated by commas; nested generator expressions can contain their own arguments.
+
+Unknown function names are retained as text. Keep generator spelling and capitalization exact. The starter builder does not validate every generator-specific argument; use the playground or the Go server to check your custom expressions.
+
+## Choose the next step
+
+Use [Array](/docs/arrays/) to repeat a value or object. Use [Ref](/docs/references/) to reuse a template across your response. Try both together in the [playground](/playground/).

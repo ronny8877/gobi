@@ -1,0 +1,23 @@
+---
+import Base from '../layouts/Base.astro';
+import Playground from '../components/Playground.svelte';
+---
+
+<Base title="Playground">
+  <div class="wrap">
+    <header class="page-head">
+      <h1 class="page-title">A schema. A request. A result.</h1>
+      <p class="lede">
+        Explore arrays, reusable references, typed generators and HTTP methods.
+      </p>
+    </header>
+    <Playground client:load />
+    <noscript>
+      <p class="notice">
+        Enable JavaScript for the playground. The{' '}
+        <a href="/docs/arrays/">Array</a> and{' '}
+        <a href="/docs/references/">Ref guides</a> work without it.
+      </p>
+    </noscript>
+  </div>
+</Base>

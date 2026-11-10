@@ -1,0 +1,94 @@
+---
+import Base from './Base.astro';
+import { guideGroups, guides } from '../lib/navigation';
+interface Props {
+  title: string;
+  description: string;
+  headings?: { depth: number; slug: string; text: string }[];
+}
+const { title, description, headings = [] } = Astro.props;
+const slug = Astro.url.pathname.split('/').filter(Boolean).at(-1);
+---
+
+<Base title={title} description={description}>
+  <div class="wrap">
+    <details class="mobile-docs">
+      <summary>Browse the guide</summary>
+      <nav aria-label="Guide pages">
+        {guides.map(([id, name]) => (
+          <a href={`/docs/${id}/`}>{name}</a>
+        ))}
+      </nav>
+    </details>
+    <div class="docs-grid">
+      <aside class="docs-sidebar" aria-label="Documentation navigation">
+        <label class="sr-only" for="guide-search">
+          Find a guide
+        </label>
+        <input
+          type="search"
+          id="guide-search"
+          placeholder="Find a guide…"
+          autocomplete="off"
+        />
+        {guideGroups.map((group) => (
+          <div class="nav-group">
+            <h2>{group.label}</h2>
+            {group.items.map(([id, name]) => (
+              <a
+                href={`/docs/${id}/`}
+                data-guide-link
+                aria-current={slug === id ? 'page' : undefined}
+              >
+                {name}
+              </a>
+            ))}
+          </div>
+        ))}
+        <p id="search-empty" hidden class="hint">
+          No matching guides. Try “array” or “auth”.
+        </p>
+        <a class="step-link" href="/builder/">
+          Build a schema <span aria-hidden="true">→</span>
+        </a>
+      </aside>
+      <article class="article">
+        <h1>{title}</h1>
+        <p class="description">{description}</p>
+        <div class="prose">
+          <slot />
+        </div>
+        <div class="doc-bottom">
+          <a href="https://github.com/ronny8877/gobi/tree/improve/runtime-persistence/docs/src/content">
+            Edit this page on GitHub
+          </a>
+          <span>Go 1.27.3+</span>
+        </div>
+      </article>
+      <aside class="toc" aria-label="On this page">
+        <h2>On this page</h2>
+        {headings
+          .filter((h) => h.depth === 2)
+          .map((h) => (
+            <a href={`#${h.slug}`}>{h.text}</a>
+          ))}
+      </aside>
+    </div>
+  </div>
+</Base>
+<script>
+  const input = document.querySelector<HTMLInputElement>('#guide-search');
+  input?.addEventListener('input', () => {
+    let count = 0;
+    document
+      .querySelectorAll<HTMLAnchorElement>('[data-guide-link]')
+      .forEach((link) => {
+        link.hidden = !link.textContent
+          ?.toLowerCase()
+          .includes(input.value.toLowerCase());
+        if (!link.hidden) count++;
+      });
+    const empty = document.querySelector<HTMLElement>('#search-empty');
+    if (empty) empty.hidden = count > 0;
+  });
+</script>

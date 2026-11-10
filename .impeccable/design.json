@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-10T15:52:18.386608+00:00",
+  "title": "Design System: Gobi",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Warm paper",
+        "tonalRamp": [
+          "oklch(15% 0.01 110)",
+          "oklch(26% 0.01 110)",
+          "oklch(38% 0.01 110)",
+          "oklch(49% 0.01 110)",
+          "oklch(61% 0.01 110)",
+          "oklch(72% 0.01 110)",
+          "oklch(84% 0.01 110)",
+          "oklch(95% 0.01 110)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Charcoal ink",
+        "tonalRamp": [
+          "oklch(15% 0.015 150)",
+          "oklch(26% 0.015 150)",
+          "oklch(38% 0.015 150)",
+          "oklch(49% 0.015 150)",
+          "oklch(61% 0.015 150)",
+          "oklch(72% 0.015 150)",
+          "oklch(84% 0.015 150)",
+          "oklch(95% 0.015 150)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted charcoal",
+        "tonalRamp": [
+          "oklch(15% 0.015 145)",
+          "oklch(26% 0.015 145)",
+          "oklch(38% 0.015 145)",
+          "oklch(49% 0.015 145)",
+          "oklch(61% 0.015 145)",
+          "oklch(72% 0.015 145)",
+          "oklch(84% 0.015 145)",
+          "oklch(95% 0.015 145)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Warm line",
+        "tonalRamp": [
+          "oklch(15% 0.015 120)",
+          "oklch(26% 0.015 120)",
+          "oklch(38% 0.015 120)",
+          "oklch(49% 0.015 120)",
+          "oklch(61% 0.015 120)",
+          "oklch(72% 0.015 120)",
+          "oklch(84% 0.015 120)",
+          "oklch(95% 0.015 120)"
+        ]
+      },
+      "green": {
+        "role": "primary",
+        "displayName": "Evergreen",
+        "tonalRamp": [
+          "oklch(15% 0.09 155)",
+          "oklch(26% 0.09 155)",
+          "oklch(38% 0.09 155)",
+          "oklch(49% 0.09 155)",
+          "oklch(61% 0.09 155)",
+          "oklch(72% 0.09 155)",
+          "oklch(84% 0.09 155)",
+          "oklch(95% 0.09 155)"
+        ]
+      },
+      "wash": {
+        "role": "neutral",
+        "displayName": "Pale wash",
+        "tonalRamp": [
+          "oklch(15% 0.025 130)",
+          "oklch(26% 0.025 130)",
+          "oklch(38% 0.025 130)",
+          "oklch(49% 0.025 130)",
+          "oklch(61% 0.025 130)",
+          "oklch(72% 0.025 130)",
+          "oklch(84% 0.025 130)",
+          "oklch(95% 0.025 130)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "White panel",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "code-bg": {
+        "role": "neutral",
+        "displayName": "Code evergreen",
+        "tonalRamp": [
+          "oklch(15% 0.03 155)",
+          "oklch(26% 0.03 155)",
+          "oklch(38% 0.03 155)",
+          "oklch(49% 0.03 155)",
+          "oklch(61% 0.03 155)",
+          "oklch(72% 0.03 155)",
+          "oklch(84% 0.03 155)",
+          "oklch(95% 0.03 155)"
+        ]
+      },
+      "code-text": {
+        "role": "neutral",
+        "displayName": "Pale code ink",
+        "tonalRamp": [
+          "oklch(15% 0.03 120)",
+          "oklch(26% 0.03 120)",
+          "oklch(38% 0.03 120)",
+          "oklch(49% 0.03 120)",
+          "oklch(61% 0.03 120)",
+          "oklch(72% 0.03 120)",
+          "oklch(84% 0.03 120)",
+          "oklch(95% 0.03 120)"
+        ]
+      },
+      "green-hover": {
+        "role": "primary",
+        "displayName": "Deep evergreen",
+        "tonalRamp": [
+          "oklch(15% 0.08 155)",
+          "oklch(26% 0.08 155)",
+          "oklch(38% 0.08 155)",
+          "oklch(49% 0.08 155)",
+          "oklch(61% 0.08 155)",
+          "oklch(72% 0.08 155)",
+          "oklch(84% 0.08 155)",
+          "oklch(95% 0.08 155)"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Focus green",
+        "tonalRamp": [
+          "oklch(15% 0.11 155)",
+          "oklch(26% 0.11 155)",
+          "oklch(38% 0.11 155)",
+          "oklch(49% 0.11 155)",
+          "oklch(61% 0.11 155)",
+          "oklch(72% 0.11 155)",
+          "oklch(84% 0.11 155)",
+          "oklch(95% 0.11 155)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Homepage headline."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Guide title."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "Schema and response specimens."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "button-background",
+        "value": "background .15s",
+        "purpose": "Button hover feedback; disabled with reduced motion."
+      },
+      {
+        "name": "pending-breathe",
+        "value": "breathe 1.2s ease-in-out infinite alternate",
+        "purpose": "Defined skeleton animation; opacity ends at .4; disabled with reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "760px"
+      },
+      {
+        "name": "builder-stack",
+        "value": "850px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "1150px"
+      },
+      {
+        "name": "wide",
+        "value": "1500px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary operation action.",
+      "html": "<button class=\"ds-primary\">Load sample</button>",
+      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 16px;border-radius:7px;font:600 14px var(--font-sans,sans-serif);cursor:pointer;transition:background .15s;background:var(--color-green,#236b48);color:white;border:1px solid var(--color-green,#236b48)}.ds-primary:hover{background:#195535}.ds-primary:focus-visible{outline:3px solid var(--color-focus,#2c8557);outline-offset:4px}.ds-primary:disabled{opacity:.55;cursor:wait}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet supporting action.",
+      "html": "<button class=\"ds-secondary\">View the schema</button>",
+      "css": ".ds-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 16px;border-radius:7px;font:600 14px var(--font-sans,sans-serif);cursor:pointer;transition:background .15s;background:transparent;color:var(--color-ink,#202b25);border:1px solid #c5cdc3}.ds-secondary:hover{background:#eef2eb}.ds-secondary:focus-visible{outline:3px solid var(--color-focus,#2c8557);outline-offset:4px}"
+    },
+    {
+      "name": "Labeled field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Persistent label and readable input.",
+      "html": "<label class=\"ds-label\" for=\"ds-route\">Route path</label><input class=\"ds-field\" id=\"ds-route\" value=\"/users\"/>",
+      "css": ".ds-label{display:block;font:650 12px var(--font-sans,sans-serif);margin-bottom:7px}.ds-field{background:white;border:1px solid #bfc9bf;border-radius:7px;padding:10px 12px;color:var(--color-ink,#202b25);font:14px var(--font-mono,monospace)}.ds-field:focus-visible{outline:3px solid var(--color-focus,#2c8557);outline-offset:4px}"
+    },
+    {
+      "name": "Work panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Bordered task container.",
+      "html": "<section class=\"ds-panel\"><div class=\"ds-panel-head\">Endpoint</div><div class=\"ds-panel-body\">Shape the response you need.</div></section>",
+      "css": ".ds-panel{background:white;border:1px solid var(--color-line,#dce1d9);border-radius:12px;overflow:hidden;font-family:var(--font-sans,sans-serif);color:var(--color-ink,#202b25)}.ds-panel-head{padding:15px 20px;border-bottom:1px solid var(--color-line,#dce1d9);font-size:13px;font-weight:600}.ds-panel-body{padding:24px;font-size:14px}"
+    },
+    {
+      "name": "Code panel",
+      "kind": "custom",
+      "refersTo": "code-panel",
+      "description": "Readable schema/result specimen.",
+      "html": "<section class=\"ds-code\"><div class=\"ds-code-head\">api.gobi.json</div><pre><code>{\"name\": \"User()\"}</code></pre></section>",
+      "css": ".ds-code{background:var(--color-code-bg,#182a22);color:var(--color-code-text,#e7efdf);border:1px solid var(--color-line,#dce1d9);border-radius:12px;overflow:hidden}.ds-code-head{padding:15px 20px;border-bottom:1px solid #385043;color:#d4e5d4;font:600 13px var(--font-sans,sans-serif)}.ds-code pre{margin:0;padding:24px;overflow-x:auto;font:13px/1.85 var(--font-mono,monospace)}.ds-code code{font:inherit}"
+    },
+    {
+      "name": "Product navigation",
+      "kind": "nav",
+      "description": "Active location signaled by text and underline.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Demo navigation\"><a href=\"#guide\" aria-current=\"page\">Guide</a><a href=\"#playground\">Playground</a></nav>",
+      "css": ".ds-nav{display:flex;gap:30px;font-family:var(--font-sans,sans-serif)}.ds-nav a{padding:30px 0;color:var(--color-muted,#59635c);font-size:14px;text-decoration:none;border-bottom:2px solid transparent}.ds-nav a[aria-current]{color:#1b5c3d;font-weight:650;border-color:var(--color-green,#236b48)}.ds-nav a:hover{color:var(--color-green,#236b48)}.ds-nav a:focus-visible{outline:3px solid var(--color-focus,#2c8557);outline-offset:4px}"
+    },
+    {
+      "name": "Method badge",
+      "kind": "chip",
+      "description": "Noninteractive HTTP method label.",
+      "html": "<span class=\"ds-method\">GET</span>",
+      "css": ".ds-method{display:inline-block;font:650 10px var(--font-mono,monospace);letter-spacing:.025em;color:var(--color-green,#236b48);background:#e9f3e9;padding:3px 7px;border-radius:4px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A quiet developer workbench",
+    "overview": "The user approved warm white surfaces, charcoal text and restrained evergreen accents, with code-first implementation. Self-hosted DM Sans supports reading and interface tasks; JetBrains Mono identifies code and measurements. The thesis is to make the transformation from a small JSON template to useful frontend data visible and repeatable.\n\nThis direction was explicitly pinned and confirmed before implementation. The user-pinned-direction exemption applies; this is not a retrospective FORM seed. The concept-seed tool ran (key 45686601); its alternatives do not override the confirmed workbench direction. No approved visual comp exists. This document records the implemented docs/demo artifact rather than inventing visual approval.",
+    "keyCharacteristics": [
+      "Warm paper, charcoal reading text and evergreen interaction states.",
+      "Fine separators and flat, readable work areas.",
+      "Visible schema/result relationships and explicit data provenance.",
+      "Reading-first guides and task-focused demos."
+    ],
+    "rules": [
+      {
+        "name": "The Restrained Accent Rule",
+        "body": "Use evergreen for actions, links and active state; let neutral surfaces carry the page.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readable Code Rule",
+        "body": "Nested code inherits its preformatted panel's size. Code panels use the code role; mobile guide and homepage examples use 12px. Do not compound the global inline-code scaling inside a preformatted block.",
+        "section": "typography"
+      },
+      {
+        "name": "The Separator Rule",
+        "body": "Establish panel boundaries with fine lines and surface tone.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** pair schemas with their results and keep sample/live provenance explicit.",
+      "**Do** use the recorded font roles and preserve readable code sizing.",
+      "**Do** retain labeled fields, visible keyboard focus, data alternatives and mobile disclosures.",
+      "**Do** use borders and restrained surface changes to organize work."
+    ],
+    "donts": [
+      "**Don't** introduce gradients, glass or ornamental shadows into the approved workbench.",
+      "**Don't** invent customer proof, performance claims or production-traffic metrics.",
+      "**Don't** hide operation controls when panels stack on phones."
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+---
+title: Validation & auth
+description: Exercise missing-field and unauthorized states in your frontend without building a real identity system.
+---
+
+## Require fields
+
+```json
+{
+  "method": "POST",
+  "path": "/events",
+  "validate": {
+    "query": ["source"],
+    "body": ["name"]
+  },
+  "response": { "message": "Message(Event created)" }
+}
+```
+
+This route requires a `source` query key and a `name` property in a single JSON object. A field with a null value counts as present. A value containing the text “name” does not satisfy the requirement. Arrays, invalid JSON and multiple JSON documents are rejected. Bodies are limited to **1 MiB**.
+
+Validation checks top-level field presence. Typed validators such as `Email()` or `UUID()` are not implemented.
+
+## Configure mock authentication
+
+```json
+{
+  "config": {
+    "auth": {
+      "apiKey": "demo-key",
+      "bearer": "demo-token",
+      "cookie": "session=demo-cookie"
+    }
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/private",
+      "auth": { "protected": true, "protectedBy": "apiKey" },
+      "response": { "message": "You are in" }
+    }
+  ]
+}
+```
+
+Send `X-API-Key: demo-key` for `apiKey`, `Authorization: Bearer demo-token` for `bearer`, or the configured cookie for `cookie`. Missing configured credentials deny access. Cookie names come from the `name=value` pair.
+
+```sh
+curl -H 'X-API-Key: demo-key' http://localhost:8080/api/private
+```
+
+An auth block with no `protected` value enables auth. Set `protected: false` to make that route public. Legacy `BearerToken` and `Cookies` method aliases are also accepted.
+
+## Keep credentials illustrative
+
+`GET /auth` intentionally returns configured mock credentials and sets the mock cookie. Do not put real credentials in `config.auth` or treat it as production access control. PocketBase's separate backend token is not exposed by this endpoint.
+
+## Test failures
+
+Set route or global `failRate` between 0 and 1. At `1`, the route always returns a simulated HTTP 500. Set `latency` in milliseconds to exercise loading states. These are simulation settings, not traffic or reliability measurements.

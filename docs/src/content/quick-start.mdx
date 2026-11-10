@@ -1,0 +1,86 @@
+---
+title: Quick start
+description: Turn a small JSON file into a working mock API. No database, account or API key required.
+---
+
+## Install Gobi
+
+Build the current branch with **Go 1.27.3 or newer**:
+
+```sh
+git clone https://github.com/ronny8877/gobi.git
+cd gobi
+git switch improve/runtime-persistence
+go build -o gobi .
+```
+
+The examples on this site use the modernization branch until it is merged. On Windows, use `go build -o gobi.exe .` and run `gobi.exe`.
+
+## Create your first endpoint
+
+Save this as `api.gobi.json`:
+
+```json
+{
+  "config": { "port": 8080, "prefix": "/api" },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/hello",
+      "response": {
+        "message": "Hello, Gobi!",
+        "name": "User()",
+        "id": "Uuid()"
+      }
+    }
+  ]
+}
+```
+
+Strings such as `User()` are generators. Ordinary text stays exactly as written. Numbers, booleans and objects can also be literal JSON values.
+
+## Start the server
+
+```sh
+./gobi -config api.gobi.json
+curl http://localhost:8080/api/hello
+```
+
+You receive a JSON object with a generated name and UUID. Request it again to get new values. Run `./gobi` without `-config` to use the interactive terminal menu.
+
+<picture>
+  <source
+    media="(max-width: 760px)"
+    srcset="/images/schema-flow-mobile.svg"
+    width="360"
+    height="510"
+  />
+  <img
+    src="/images/schema-flow.svg"
+    width="1000"
+    height="220"
+    alt="How a schema becomes a response"
+  />
+</picture>
+
+## Edit while it runs
+
+Change the response and save the file. Gobi reloads routes, prefixes and templates automatically. Invalid edits keep the last working configuration. Changing the port requires a restart.
+
+```sh
+curl http://localhost:8080/health
+```
+
+`/health` is a reserved endpoint and always returns an object with `status` set to `ok` while the HTTP server is running.
+
+## Try the demos
+
+The [playground](/playground/) compares schemas and responses. The [dashboard](/dashboard/) shows charts and customer records from a single response. Both start with clearly labeled sample fixtures.
+
+For actual Go-generated data, start the bundled API:
+
+```sh
+./gobi -config examples/docs-demo.gobi.json
+```
+
+Then run the site using the [development instructions](/docs/deployment/). Select **Live Gobi server**, leave the URL as `/gobi-api`, and send a request. Or use the [schema builder](/builder/) to make a configuration of your own.
