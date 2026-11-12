@@ -19,6 +19,12 @@ Open `http://localhost:4321`, select **Live Gobi server** in the playground or d
 
 ![Gobi dashboard demo](docs/public/images/dashboard-preview.png)
 
+## Frontend demo walkthrough and implementation help
+
+[Try the free storefront and support-desk examples](examples/demo-sprint/README.md): generated data, reusable shapes, delayed responses, deliberate failures and frontend proxy setup.
+
+Need help connecting an existing screen? The [Frontend Demo Sprint](FRONTEND_DEMO_SPRINT.md) is a separate ₹7,500 implementation pilot: one screen, up to five agreed mock routes, one revision and source handoff. Scope and timing follow review. Gobi remains free under MIT.
+
 ## Features
 - Authenticated Routes
 - Basic Input Validation

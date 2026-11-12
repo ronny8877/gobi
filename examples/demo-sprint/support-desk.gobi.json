@@ -1,0 +1,90 @@
+{
+  "config": {
+    "port": 8080,
+    "prefix": "/api",
+    "logging": true
+  },
+  "ref": {
+    "agent": {
+      "id": "Uuid()",
+      "name": "User()",
+      "email": "User(email)"
+    },
+    "ticket": {
+      "id": "Uuid()",
+      "subject": "Lorem(type=sentence,len=5)",
+      "requester": "User(email)",
+      "status": "open",
+      "assignee": "Ref(ref.agent)",
+      "created": "Time(iso)"
+    }
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/tickets",
+      "response": {
+        "ticket": "Ref(ref.ticket)"
+      },
+      "responseType": "Array(8)"
+    },
+    {
+      "method": "GET",
+      "path": "/tickets/:id",
+      "response": {
+        "ticket": "Ref(ref.ticket)",
+        "messages": "Array(len=3,type=Lorem(type=sentence,len=12))"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/tickets",
+      "response": {
+        "id": "Uuid()",
+        "status": "open",
+        "message": "Ticket accepted by the mock API"
+      },
+      "validate": {
+        "body": [
+          "subject",
+          "email"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/agents",
+      "response": {
+        "agent": "Ref(ref.agent)"
+      },
+      "responseType": "Array(4)"
+    },
+    {
+      "method": "GET",
+      "path": "/overview",
+      "response": {
+        "openTickets": "Int(min=10,max=80)",
+        "resolvedToday": "Int(min=1,max=20)",
+        "responseMinutes": "Int(min=3,max=45)",
+        "availableAgents": "Int(min=1,max=8)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/slow-tickets",
+      "response": {
+        "ticket": "Ref(ref.ticket)"
+      },
+      "responseType": "Array(4)",
+      "latency": 1500
+    },
+    {
+      "method": "GET",
+      "path": "/unavailable",
+      "response": {
+        "message": "unavailable"
+      },
+      "failRate": 1
+    }
+  ]
+}

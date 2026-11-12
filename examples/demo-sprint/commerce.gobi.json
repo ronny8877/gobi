@@ -1,0 +1,90 @@
+{
+  "config": {
+    "port": 8080,
+    "prefix": "/api",
+    "logging": true
+  },
+  "ref": {
+    "product": {
+      "id": "Uuid()",
+      "name": "Company()",
+      "description": "Lorem(type=sentence,len=8)",
+      "price": "Float(min=10,max=250,precision=2)",
+      "inStock": "Bool(true)"
+    },
+    "customer": {
+      "id": "Uuid()",
+      "name": "User()",
+      "email": "User(email)"
+    }
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/products",
+      "response": {
+        "product": "Ref(ref.product)"
+      },
+      "responseType": "Array(8)"
+    },
+    {
+      "method": "GET",
+      "path": "/products/:id",
+      "response": {
+        "product": "Ref(ref.product)"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/customers",
+      "response": {
+        "customer": "Ref(ref.customer)"
+      },
+      "responseType": "Array(5)"
+    },
+    {
+      "method": "GET",
+      "path": "/orders",
+      "response": {
+        "id": "Uuid()",
+        "customer": "Ref(ref.customer)",
+        "items": "Array(len=2,type=Ref(ref.product))",
+        "total": "Float(min=20,max=500,precision=2)",
+        "status": "processing"
+      },
+      "responseType": "Array(5)"
+    },
+    {
+      "method": "POST",
+      "path": "/orders",
+      "response": {
+        "id": "Uuid()",
+        "message": "Order received by the mock API",
+        "status": "created"
+      },
+      "validate": {
+        "body": [
+          "customerId",
+          "items"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/slow-products",
+      "response": {
+        "product": "Ref(ref.product)"
+      },
+      "responseType": "Array(4)",
+      "latency": 1500
+    },
+    {
+      "method": "GET",
+      "path": "/unavailable",
+      "response": {
+        "message": "unavailable"
+      },
+      "failRate": 1
+    }
+  ]
+}
